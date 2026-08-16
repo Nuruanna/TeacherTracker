@@ -1,0 +1,625 @@
+{
+  "courseMapId": "grade-3",
+  "grade": 3,
+  "textbook": "Spotlight 3",
+  "plannedItemCount": 60,
+  "reserveCount": 6,
+  "totalItemCount": 66,
+  "reserveScope": "annual",
+  "items": [
+    {
+      "id": "g3-001",
+      "order": 1,
+      "type": "lesson",
+      "code": "Starter Lesson a",
+      "title": "Welcome back!",
+      "lesson": "a",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g3-002",
+      "order": 2,
+      "type": "lesson",
+      "code": "Starter Lesson b",
+      "title": "Welcome back!",
+      "lesson": "b",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g3-003",
+      "order": 3,
+      "type": "lesson",
+      "code": "Module 1 Lesson 1a",
+      "title": "School again!",
+      "module": 1,
+      "lesson": "1a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-004",
+      "order": 4,
+      "type": "lesson",
+      "code": "Module 1 Lesson 1b",
+      "title": "School again!",
+      "module": 1,
+      "lesson": "1b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-005",
+      "order": 5,
+      "type": "lesson",
+      "code": "Module 1 Lesson 2a",
+      "title": "School subjects",
+      "module": 1,
+      "lesson": "2a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-006",
+      "order": 6,
+      "type": "lesson",
+      "code": "Module 1 Lesson 2b",
+      "title": "School subjects",
+      "module": 1,
+      "lesson": "2b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-007",
+      "order": 7,
+      "type": "lesson",
+      "code": "Module 1 Test",
+      "title": null,
+      "module": 1,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-008",
+      "order": 8,
+      "type": "lesson",
+      "code": "Module 1 Correction",
+      "title": null,
+      "module": 1,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-009",
+      "order": 9,
+      "type": "lesson",
+      "code": "Module 1 Project Work",
+      "title": null,
+      "module": 1,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-010",
+      "order": 10,
+      "type": "lesson",
+      "code": "Module 2 Lesson 3a",
+      "title": "A New Member!",
+      "module": 2,
+      "lesson": "3a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-011",
+      "order": 11,
+      "type": "lesson",
+      "code": "Module 2 Lesson 3b",
+      "title": "My Home!",
+      "module": 2,
+      "lesson": "3b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-012",
+      "order": 12,
+      "type": "lesson",
+      "code": "Module 2 Lesson 4a",
+      "title": "A Happy Family!",
+      "module": 2,
+      "lesson": "4a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-013",
+      "order": 13,
+      "type": "lesson",
+      "code": "Module 2 Lesson 4b",
+      "title": "A Happy Family!",
+      "module": 2,
+      "lesson": "4b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-014",
+      "order": 14,
+      "type": "lesson",
+      "code": "Module 2 Test",
+      "title": null,
+      "module": 2,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-015",
+      "order": 15,
+      "type": "lesson",
+      "code": "Module 2 Correction",
+      "title": null,
+      "module": 2,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-016",
+      "order": 16,
+      "type": "lesson",
+      "code": "Module 2 Project Work",
+      "title": null,
+      "module": 2,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-017",
+      "order": 17,
+      "type": "lesson",
+      "code": "Module 3 Lesson 5a",
+      "title": "He loves jelly!",
+      "module": 3,
+      "lesson": "5a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-018",
+      "order": 18,
+      "type": "lesson",
+      "code": "Module 3 Lesson 5b",
+      "title": "He loves jelly!",
+      "module": 3,
+      "lesson": "5b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-019",
+      "order": 19,
+      "type": "lesson",
+      "code": "Module 3 Lesson 6a",
+      "title": "In my lunch box!",
+      "module": 3,
+      "lesson": "6a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-020",
+      "order": 20,
+      "type": "lesson",
+      "code": "Module 3 Lesson 6b",
+      "title": "In my lunch box!",
+      "module": 3,
+      "lesson": "6b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-021",
+      "order": 21,
+      "type": "lesson",
+      "code": "Module 3 Grammar practice",
+      "title": null,
+      "module": 3,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-022",
+      "order": 22,
+      "type": "lesson",
+      "code": "Module 3 Test",
+      "title": null,
+      "module": 3,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-023",
+      "order": 23,
+      "type": "lesson",
+      "code": "Module 3 Correction",
+      "title": null,
+      "module": 3,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-024",
+      "order": 24,
+      "type": "lesson",
+      "code": "Module 3 Project Work",
+      "title": null,
+      "module": 3,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-025",
+      "order": 25,
+      "type": "lesson",
+      "code": "Module 4 Lesson 7a",
+      "title": "Toys for Little Betsy!",
+      "module": 4,
+      "lesson": "7a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-026",
+      "order": 26,
+      "type": "lesson",
+      "code": "Module 4 Lesson 7b",
+      "title": "Toys for Little Betsy!",
+      "module": 4,
+      "lesson": "7b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-027",
+      "order": 27,
+      "type": "lesson",
+      "code": "Module 4 Lesson 8a",
+      "title": "In my room!",
+      "module": 4,
+      "lesson": "8a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-028",
+      "order": 28,
+      "type": "lesson",
+      "code": "Module 4 Lesson 8b",
+      "title": "In my room!",
+      "module": 4,
+      "lesson": "8b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-029",
+      "order": 29,
+      "type": "lesson",
+      "code": "Module 4 Test",
+      "title": null,
+      "module": 4,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-030",
+      "order": 30,
+      "type": "lesson",
+      "code": "Module 4 Correction",
+      "title": null,
+      "module": 4,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-031",
+      "order": 31,
+      "type": "lesson",
+      "code": "Module 4 Project Work",
+      "title": null,
+      "module": 4,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-032",
+      "order": 32,
+      "type": "lesson",
+      "code": "Module 5 Lesson 9a",
+      "title": "Cows are funny!",
+      "module": 5,
+      "lesson": "9a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-033",
+      "order": 33,
+      "type": "lesson",
+      "code": "Module 5 Lesson 9b",
+      "title": "Cows are funny!",
+      "module": 5,
+      "lesson": "9b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-034",
+      "order": 34,
+      "type": "lesson",
+      "code": "Module 5 Grammar practice",
+      "title": null,
+      "module": 5,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-035",
+      "order": 35,
+      "type": "lesson",
+      "code": "Module 5 Lesson 10a",
+      "title": "Clever animals!",
+      "module": 5,
+      "lesson": "10a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-036",
+      "order": 36,
+      "type": "lesson",
+      "code": "Module 5 Lesson 10b",
+      "title": "Clever animals!",
+      "module": 5,
+      "lesson": "10b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-037",
+      "order": 37,
+      "type": "lesson",
+      "code": "Module 5 Test",
+      "title": null,
+      "module": 5,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-038",
+      "order": 38,
+      "type": "lesson",
+      "code": "Module 5 Correction",
+      "title": null,
+      "module": 5,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-039",
+      "order": 39,
+      "type": "lesson",
+      "code": "Module 5 Project Work",
+      "title": null,
+      "module": 5,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-040",
+      "order": 40,
+      "type": "lesson",
+      "code": "Module 6 Lesson 11a",
+      "title": "Grandma! Grandpa!",
+      "module": 6,
+      "lesson": "11a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-041",
+      "order": 41,
+      "type": "lesson",
+      "code": "Module 6 Lesson 11b",
+      "title": "Grandma! Grandpa!",
+      "module": 6,
+      "lesson": "11b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-042",
+      "order": 42,
+      "type": "lesson",
+      "code": "Module 6 Lesson 12a",
+      "title": "My house!",
+      "module": 6,
+      "lesson": "12a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-043",
+      "order": 43,
+      "type": "lesson",
+      "code": "Module 6 Lesson 12b",
+      "title": "My house!",
+      "module": 6,
+      "lesson": "12b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-044",
+      "order": 44,
+      "type": "lesson",
+      "code": "Module 6 Test",
+      "title": null,
+      "module": 6,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-045",
+      "order": 45,
+      "type": "lesson",
+      "code": "Module 6 Correction",
+      "title": null,
+      "module": 6,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-046",
+      "order": 46,
+      "type": "lesson",
+      "code": "Module 6 Project Work",
+      "title": null,
+      "module": 6,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-047",
+      "order": 47,
+      "type": "lesson",
+      "code": "Module 7 Lesson 13a",
+      "title": "We're having a great time!",
+      "module": 7,
+      "lesson": "13a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-048",
+      "order": 48,
+      "type": "lesson",
+      "code": "Module 7 Lesson 13b",
+      "title": "We're having a great time!",
+      "module": 7,
+      "lesson": "13b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-049",
+      "order": 49,
+      "type": "lesson",
+      "code": "Module 7 Lesson 14a",
+      "title": "In the park!",
+      "module": 7,
+      "lesson": "14a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-050",
+      "order": 50,
+      "type": "lesson",
+      "code": "Module 7 Lesson 14b",
+      "title": "In the park!",
+      "module": 7,
+      "lesson": "14b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-051",
+      "order": 51,
+      "type": "lesson",
+      "code": "Module 7 Test",
+      "title": null,
+      "module": 7,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-052",
+      "order": 52,
+      "type": "lesson",
+      "code": "Module 7 Correction",
+      "title": null,
+      "module": 7,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-053",
+      "order": 53,
+      "type": "lesson",
+      "code": "Module 7 Project Work",
+      "title": null,
+      "module": 7,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-054",
+      "order": 54,
+      "type": "lesson",
+      "code": "Module 8 Lesson 15a",
+      "title": "A fun day!",
+      "module": 8,
+      "lesson": "15a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-055",
+      "order": 55,
+      "type": "lesson",
+      "code": "Module 8 Lesson 15b",
+      "title": "A fun day!",
+      "module": 8,
+      "lesson": "15b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-056",
+      "order": 56,
+      "type": "lesson",
+      "code": "Module 8 Lesson 16a",
+      "title": "On Sundays",
+      "module": 8,
+      "lesson": "16a",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-057",
+      "order": 57,
+      "type": "lesson",
+      "code": "Module 8 Lesson 16b",
+      "title": "On Sundays",
+      "module": 8,
+      "lesson": "16b",
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-058",
+      "order": 58,
+      "type": "lesson",
+      "code": "Module 8 Test",
+      "title": null,
+      "module": 8,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-059",
+      "order": 59,
+      "type": "lesson",
+      "code": "Module 8 Correction",
+      "title": null,
+      "module": 8,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-060",
+      "order": 60,
+      "type": "lesson",
+      "code": "Module 8 Project Work",
+      "title": null,
+      "module": 8,
+      "sectionType": "other"
+    },
+    {
+      "id": "g3-061",
+      "order": 61,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g3-062",
+      "order": 62,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g3-063",
+      "order": 63,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g3-064",
+      "order": 64,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g3-065",
+      "order": 65,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g3-066",
+      "order": 66,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    }
+  ]
+}

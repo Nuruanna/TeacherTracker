@@ -1,0 +1,3 @@
+import { StatusIcon } from './Icons';
+const statuses=[['upcoming','Upcoming','Lesson is scheduled and upcoming.'],['completed','Completed','Lesson has already finished.'],['cancelled','Cancelled','Lesson was cancelled.'],['rescheduled','Rescheduled','Lesson moved to a different time or date.'],['attention','Needs attention','Unfinished work was carried into this lesson.']];
+export default function LessonStatusLegend(){return <section className="status-legend card"><h2>Lesson status</h2><div>{statuses.map(([type,label,text])=><div className="legend-row" key={type}><StatusIcon type={type}/><p><strong>{label}</strong><small>{text}</small></p></div>)}</div><p className="legend-quote">Every lesson is a step forward.</p></section>}

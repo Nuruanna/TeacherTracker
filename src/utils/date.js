@@ -1,0 +1,10 @@
+export const DEMO_DATE = new Date();
+export const pad = n => String(n).padStart(2, '0');
+export const isoDate = date => `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+export const dateLong = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(date);
+export const dayMonth = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long'}).format(date);
+export const weekday = date => new Intl.DateTimeFormat('en-GB',{weekday:'long'}).format(date);
+export const parseIsoDate = value => { const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||''); return match?new Date(Number(match[1]),Number(match[2])-1,Number(match[3]),12):null; };
+export const addDays = (date,amount) => { const next=new Date(date); next.setDate(next.getDate()+amount); return next; };
+export const startOfWeek = date => addDays(date,-((date.getDay()+6)%7));
+export const dayMonthYear = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(date);

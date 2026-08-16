@@ -1,0 +1,653 @@
+{
+  "courseMapId": "grade-5",
+  "grade": 5,
+  "textbook": "Rainbow English 5",
+  "plannedItemCount": 60,
+  "reserveCount": 6,
+  "totalItemCount": 66,
+  "reserveScope": "annual",
+  "items": [
+    {
+      "id": "g5-001",
+      "order": 1,
+      "type": "lesson",
+      "code": "Unit 1 Step 1",
+      "title": "Summer Holidays",
+      "unit": 1,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-002",
+      "order": 2,
+      "type": "lesson",
+      "code": "Unit 1 Step 2",
+      "title": "Free Time and Past Simple",
+      "unit": 1,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-003",
+      "order": 3,
+      "type": "lesson",
+      "code": "Unit 1 Step 3",
+      "title": "Weekend Plans",
+      "unit": 1,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-004",
+      "order": 4,
+      "type": "lesson",
+      "code": "Unit 1 Step 4",
+      "title": "Weather",
+      "unit": 1,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-005",
+      "order": 5,
+      "type": "lesson",
+      "code": "Unit 1 Step 5",
+      "title": "Countries and Cities of Europe",
+      "unit": 1,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-006",
+      "order": 6,
+      "type": "lesson",
+      "code": "Unit 1 Step 6",
+      "title": "Comparing Things",
+      "unit": 1,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-007",
+      "order": 7,
+      "type": "lesson",
+      "code": "Unit 1 Step 7",
+      "title": "Holidays in Russia",
+      "unit": 1,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-008",
+      "order": 8,
+      "type": "lesson",
+      "code": "Unit 1 Step 8",
+      "title": "Holidays Are Over: Review",
+      "unit": 1,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-009",
+      "order": 9,
+      "type": "lesson",
+      "code": "Unit 1 Step 9",
+      "title": "Holidays Are Over: Check Yourself",
+      "unit": 1,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-010",
+      "order": 10,
+      "type": "lesson",
+      "code": "Unit 1 Step 10",
+      "title": "My Summer Holidays",
+      "unit": 1,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-011",
+      "order": 11,
+      "type": "lesson",
+      "code": "Unit 2 Step 1",
+      "title": "Russian Cities and Subject Questions",
+      "unit": 2,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-012",
+      "order": 12,
+      "type": "lesson",
+      "code": "Unit 2 Step 2",
+      "title": "To Be Born",
+      "unit": 2,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-013",
+      "order": 13,
+      "type": "lesson",
+      "code": "Unit 2 Step 3",
+      "title": "Family and Dates",
+      "unit": 2,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-014",
+      "order": 14,
+      "type": "lesson",
+      "code": "Unit 2 Step 4",
+      "title": "Family and Professions",
+      "unit": 2,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-015",
+      "order": 15,
+      "type": "lesson",
+      "code": "Unit 2 Step 5",
+      "title": "Professions and Could",
+      "unit": 2,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-016",
+      "order": 16,
+      "type": "lesson",
+      "code": "Unit 2 Step 6",
+      "title": "Could and Family Professions",
+      "unit": 2,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-017",
+      "order": 17,
+      "type": "lesson",
+      "code": "Unit 2 Step 7",
+      "title": "Dates and Ordinal Numbers",
+      "unit": 2,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-018",
+      "order": 18,
+      "type": "lesson",
+      "code": "Unit 2 Step 8",
+      "title": "Family History: Review",
+      "unit": 2,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-019",
+      "order": 19,
+      "type": "lesson",
+      "code": "Unit 2 Step 9",
+      "title": "Family History: Check Yourself",
+      "unit": 2,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-020",
+      "order": 20,
+      "type": "lesson",
+      "code": "Unit 2 Step 10",
+      "title": "Family History: Read for Pleasure",
+      "unit": 2,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-021",
+      "order": 21,
+      "type": "lesson",
+      "code": "Unit 3 Step 1",
+      "title": "Healthy Lifestyle and Sports",
+      "unit": 3,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-022",
+      "order": 22,
+      "type": "lesson",
+      "code": "Unit 3 Step 2",
+      "title": "Telling the Time",
+      "unit": 3,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-023",
+      "order": 23,
+      "type": "lesson",
+      "code": "Unit 3 Step 3",
+      "title": "Time and Health",
+      "unit": 3,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-024",
+      "order": 24,
+      "type": "lesson",
+      "code": "Unit 3 Step 4",
+      "title": "Healthy Lifestyle and Let's...",
+      "unit": 3,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-025",
+      "order": 25,
+      "type": "lesson",
+      "code": "Unit 3 Step 5",
+      "title": "Healthy Lifestyle Vocabulary",
+      "unit": 3,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-026",
+      "order": 26,
+      "type": "lesson",
+      "code": "Unit 3 Step 6",
+      "title": "Word Building and Healthy Habits",
+      "unit": 3,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-027",
+      "order": 27,
+      "type": "lesson",
+      "code": "Unit 3 Step 7",
+      "title": "Hobbies and Have Got",
+      "unit": 3,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-028",
+      "order": 28,
+      "type": "lesson",
+      "code": "Unit 3 Step 8",
+      "title": "Healthy Ways: Review",
+      "unit": 3,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-029",
+      "order": 29,
+      "type": "lesson",
+      "code": "Unit 3 Step 9",
+      "title": "Healthy Ways: Check Yourself",
+      "unit": 3,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-030",
+      "order": 30,
+      "type": "lesson",
+      "code": "Unit 3 Step 10",
+      "title": "Healthy Ways: Read for Pleasure",
+      "unit": 3,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-031",
+      "order": 31,
+      "type": "lesson",
+      "code": "Unit 4 Step 1",
+      "title": "Free Time and Questions",
+      "unit": 4,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-032",
+      "order": 32,
+      "type": "lesson",
+      "code": "Unit 4 Step 2",
+      "title": "Pets and Alternative Questions",
+      "unit": 4,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-033",
+      "order": 33,
+      "type": "lesson",
+      "code": "Unit 4 Step 3",
+      "title": "Hobbies",
+      "unit": 4,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-034",
+      "order": 34,
+      "type": "lesson",
+      "code": "Unit 4 Step 4",
+      "title": "Hobbies and Prefix un-",
+      "unit": 4,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-035",
+      "order": 35,
+      "type": "lesson",
+      "code": "Unit 4 Step 5",
+      "title": "Hobbies and Tag Questions",
+      "unit": 4,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-036",
+      "order": 36,
+      "type": "lesson",
+      "code": "Unit 4 Step 6",
+      "title": "Tag Questions",
+      "unit": 4,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-037",
+      "order": 37,
+      "type": "lesson",
+      "code": "Unit 4 Step 7",
+      "title": "Hobbies and the Circus",
+      "unit": 4,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-038",
+      "order": 38,
+      "type": "lesson",
+      "code": "Unit 4 Step 8",
+      "title": "After School: Review",
+      "unit": 4,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-039",
+      "order": 39,
+      "type": "lesson",
+      "code": "Unit 4 Step 9",
+      "title": "After School: Check Yourself",
+      "unit": 4,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-040",
+      "order": 40,
+      "type": "lesson",
+      "code": "Unit 4 Step 10",
+      "title": "The Boy Who Cried Wolf",
+      "unit": 4,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-041",
+      "order": 41,
+      "type": "lesson",
+      "code": "Unit 5 Step 1",
+      "title": "Travelling",
+      "unit": 5,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-042",
+      "order": 42,
+      "type": "lesson",
+      "code": "Unit 5 Step 2",
+      "title": "Travelling around Russia",
+      "unit": 5,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-043",
+      "order": 43,
+      "type": "lesson",
+      "code": "Unit 5 Step 3",
+      "title": "Scotland",
+      "unit": 5,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-044",
+      "order": 44,
+      "type": "lesson",
+      "code": "Unit 5 Step 4",
+      "title": "Cities and Their Sights",
+      "unit": 5,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-045",
+      "order": 45,
+      "type": "lesson",
+      "code": "Unit 5 Step 5",
+      "title": "Travelling in Britain",
+      "unit": 5,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-046",
+      "order": 46,
+      "type": "lesson",
+      "code": "Unit 5 Step 6",
+      "title": "Adverbs and Travelling",
+      "unit": 5,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-047",
+      "order": 47,
+      "type": "lesson",
+      "code": "Unit 5 Step 7",
+      "title": "The City of My Dreams",
+      "unit": 5,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-048",
+      "order": 48,
+      "type": "lesson",
+      "code": "Unit 5 Step 8",
+      "title": "From Place to Place: Review",
+      "unit": 5,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-049",
+      "order": 49,
+      "type": "lesson",
+      "code": "Unit 5 Step 9",
+      "title": "From Place to Place: Check Yourself",
+      "unit": 5,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-050",
+      "order": 50,
+      "type": "lesson",
+      "code": "Unit 5 Step 10",
+      "title": "London Bridge",
+      "unit": 5,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-051",
+      "order": 51,
+      "type": "lesson",
+      "code": "Unit 6 Step 1",
+      "title": "Travelling and It Takes...",
+      "unit": 6,
+      "step": 1,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-052",
+      "order": 52,
+      "type": "lesson",
+      "code": "Unit 6 Step 2",
+      "title": "Russia, My Country",
+      "unit": 6,
+      "step": 2,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-053",
+      "order": 53,
+      "type": "lesson",
+      "code": "Unit 6 Step 3",
+      "title": "Geography of Russia and Past Progressive",
+      "unit": 6,
+      "step": 3,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-054",
+      "order": 54,
+      "type": "lesson",
+      "code": "Unit 6 Step 4",
+      "title": "Animals of Russia and Past Progressive",
+      "unit": 6,
+      "step": 4,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-055",
+      "order": 55,
+      "type": "lesson",
+      "code": "Unit 6 Step 5",
+      "title": "Famous People of Russia",
+      "unit": 6,
+      "step": 5,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-056",
+      "order": 56,
+      "type": "lesson",
+      "code": "Unit 6 Step 6",
+      "title": "Russian and British Ways of Life",
+      "unit": 6,
+      "step": 6,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-057",
+      "order": 57,
+      "type": "lesson",
+      "code": "Unit 6 Step 7",
+      "title": "A Trip to Irkutsk",
+      "unit": 6,
+      "step": 7,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-058",
+      "order": 58,
+      "type": "lesson",
+      "code": "Unit 6 Step 8",
+      "title": "About Russia: Review",
+      "unit": 6,
+      "step": 8,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-059",
+      "order": 59,
+      "type": "lesson",
+      "code": "Unit 6 Step 9",
+      "title": "About Russia: Check Yourself",
+      "unit": 6,
+      "step": 9,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-060",
+      "order": 60,
+      "type": "lesson",
+      "code": "Unit 6 Step 10",
+      "title": "An Invitation to Russia",
+      "unit": 6,
+      "step": 10,
+      "sectionType": "step"
+    },
+    {
+      "id": "g5-061",
+      "order": 61,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g5-062",
+      "order": 62,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g5-063",
+      "order": 63,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g5-064",
+      "order": 64,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g5-065",
+      "order": 65,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g5-066",
+      "order": 66,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    }
+  ]
+}

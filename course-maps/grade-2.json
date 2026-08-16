@@ -1,0 +1,629 @@
+{
+  "courseMapId": "grade-2",
+  "grade": 2,
+  "textbook": "Spotlight 2",
+  "provisional": true,
+  "plannedItemCount": 60,
+  "reserveCount": 6,
+  "totalItemCount": 66,
+  "reserveScope": "annual",
+  "items": [
+    {
+      "id": "g2-001",
+      "order": 1,
+      "type": "lesson",
+      "code": "Reading Lesson 1",
+      "title": "Letters E, T, N, P",
+      "lesson": "1",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-002",
+      "order": 2,
+      "type": "lesson",
+      "code": "Reading Lesson 2",
+      "title": "Letters U, C, S",
+      "lesson": "2",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-003",
+      "order": 3,
+      "type": "lesson",
+      "code": "Reading Lesson 3",
+      "title": "Letters A, H, M",
+      "lesson": "3",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-004",
+      "order": 4,
+      "type": "lesson",
+      "code": "Reading Lesson 4",
+      "title": "Letters O, D, G",
+      "lesson": "4",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-005",
+      "order": 5,
+      "type": "lesson",
+      "code": "Reading Lesson 5",
+      "title": "Letters I, B, K, X",
+      "lesson": "5",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-006",
+      "order": 6,
+      "type": "lesson",
+      "code": "Reading Lesson 6",
+      "title": "Letters R",
+      "lesson": "6",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-007",
+      "order": 7,
+      "type": "lesson",
+      "code": "Reading Lesson 7",
+      "title": "Letters F, L",
+      "lesson": "7",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-008",
+      "order": 8,
+      "type": "lesson",
+      "code": "Reading Lesson 8",
+      "title": "Letters J, W",
+      "lesson": "8",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-009",
+      "order": 9,
+      "type": "lesson",
+      "code": "Reading Lesson 9",
+      "title": "Letters V, Z",
+      "lesson": "9",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-010",
+      "order": 10,
+      "type": "lesson",
+      "code": "Reading Lesson 10",
+      "title": "Phonics Sh, Ch",
+      "lesson": "10",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-011",
+      "order": 11,
+      "type": "lesson",
+      "code": "Reading Lesson 11",
+      "title": "Phonics Th, Ph",
+      "lesson": "11",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-012",
+      "order": 12,
+      "type": "lesson",
+      "code": "Reading Lesson 12",
+      "title": "Big and small",
+      "lesson": "12",
+      "sectionType": "reading"
+    },
+    {
+      "id": "g2-013",
+      "order": 13,
+      "type": "lesson",
+      "code": "Starter Lesson 1a",
+      "title": "Hello!",
+      "lesson": "1a",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g2-014",
+      "order": 14,
+      "type": "lesson",
+      "code": "Starter Lesson 1b",
+      "title": "Hello!",
+      "lesson": "1b",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g2-015",
+      "order": 15,
+      "type": "lesson",
+      "code": "Starter Lesson 1a",
+      "title": "My family",
+      "lesson": "1a",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g2-016",
+      "order": 16,
+      "type": "lesson",
+      "code": "Starter Lesson 1b",
+      "title": "My family",
+      "lesson": "1b",
+      "sectionType": "starter"
+    },
+    {
+      "id": "g2-017",
+      "order": 17,
+      "type": "lesson",
+      "code": "Module 1 Lesson 1a",
+      "title": "My Home!",
+      "module": 1,
+      "lesson": "1a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-018",
+      "order": 18,
+      "type": "lesson",
+      "code": "Module 1 Lesson 1b",
+      "title": "My Home!",
+      "module": 1,
+      "lesson": "1b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-019",
+      "order": 19,
+      "type": "lesson",
+      "code": "Module 1 Lesson 2a",
+      "title": "Where's Chuckles?",
+      "module": 1,
+      "lesson": "2a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-020",
+      "order": 20,
+      "type": "lesson",
+      "code": "Module 1 Lesson 2b",
+      "title": "Where's Chuckles?",
+      "module": 1,
+      "lesson": "2b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-021",
+      "order": 21,
+      "type": "lesson",
+      "code": "Module 1 Lesson 3a",
+      "title": "In the Bath!",
+      "module": 1,
+      "lesson": "3a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-022",
+      "order": 22,
+      "type": "lesson",
+      "code": "Module 1 Lesson 3b",
+      "title": "In the Bath!",
+      "module": 1,
+      "lesson": "3b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-023",
+      "order": 23,
+      "type": "lesson",
+      "code": "Module 1 Lesson 3c",
+      "title": "Revision",
+      "module": 1,
+      "lesson": "3c",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-024",
+      "order": 24,
+      "type": "lesson",
+      "code": "Module 2 Lesson 4a",
+      "title": "My Birthday!",
+      "module": 2,
+      "lesson": "4a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-025",
+      "order": 25,
+      "type": "lesson",
+      "code": "Module 2 Lesson 4b",
+      "title": "My Birthday!",
+      "module": 2,
+      "lesson": "4b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-026",
+      "order": 26,
+      "type": "lesson",
+      "code": "Module 2 Lesson 5a",
+      "title": "Yummy Chocolate!",
+      "module": 2,
+      "lesson": "5a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-027",
+      "order": 27,
+      "type": "lesson",
+      "code": "Module 2 Lesson 5b",
+      "title": "Yummy Chocolate!",
+      "module": 2,
+      "lesson": "5b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-028",
+      "order": 28,
+      "type": "lesson",
+      "code": "Module 2 Lesson 6a",
+      "title": "My Favourite Food!",
+      "module": 2,
+      "lesson": "6a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-029",
+      "order": 29,
+      "type": "lesson",
+      "code": "Module 2 Lesson 6b",
+      "title": "My Favourite Food!",
+      "module": 2,
+      "lesson": "6b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-030",
+      "order": 30,
+      "type": "lesson",
+      "code": "Module 2 Lesson 6c",
+      "title": "Revision",
+      "module": 2,
+      "lesson": "6c",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-031",
+      "order": 31,
+      "type": "lesson",
+      "code": "Module 2 Now I know",
+      "title": null,
+      "module": 2,
+      "sectionType": "review"
+    },
+    {
+      "id": "g2-032",
+      "order": 32,
+      "type": "lesson",
+      "code": "Module 2 Test",
+      "title": null,
+      "module": 2,
+      "sectionType": "test"
+    },
+    {
+      "id": "g2-033",
+      "order": 33,
+      "type": "lesson",
+      "code": "Module 3 Lesson 7a",
+      "title": "My Animals!",
+      "module": 3,
+      "lesson": "7a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-034",
+      "order": 34,
+      "type": "lesson",
+      "code": "Module 3 Lesson 7b",
+      "title": "My Animals!",
+      "module": 3,
+      "lesson": "7b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-035",
+      "order": 35,
+      "type": "lesson",
+      "code": "Module 3 Lesson 8a",
+      "title": "I Can Jump!",
+      "module": 3,
+      "lesson": "8a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-036",
+      "order": 36,
+      "type": "lesson",
+      "code": "Module 3 Lesson 8b",
+      "title": "I Can Jump!",
+      "module": 3,
+      "lesson": "8b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-037",
+      "order": 37,
+      "type": "lesson",
+      "code": "Module 3 Lesson 9a",
+      "title": "At the Circus!",
+      "module": 3,
+      "lesson": "9a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-038",
+      "order": 38,
+      "type": "lesson",
+      "code": "Module 3 Lesson 9b",
+      "title": "At the Circus!",
+      "module": 3,
+      "lesson": "9b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-039",
+      "order": 39,
+      "type": "lesson",
+      "code": "Module 3 Lesson 9c",
+      "title": "Revision",
+      "module": 3,
+      "lesson": "9c",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-040",
+      "order": 40,
+      "type": "lesson",
+      "code": "Module 3 Now I know",
+      "title": null,
+      "module": 3,
+      "sectionType": "review"
+    },
+    {
+      "id": "g2-041",
+      "order": 41,
+      "type": "lesson",
+      "code": "Module 3 Test",
+      "title": null,
+      "module": 3,
+      "sectionType": "test"
+    },
+    {
+      "id": "g2-042",
+      "order": 42,
+      "type": "lesson",
+      "code": "Module 4 Lesson 10a",
+      "title": "My Toys!",
+      "module": 4,
+      "lesson": "10a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-043",
+      "order": 43,
+      "type": "lesson",
+      "code": "Module 4 Lesson 10b",
+      "title": "My Toys!",
+      "module": 4,
+      "lesson": "10b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-044",
+      "order": 44,
+      "type": "lesson",
+      "code": "Module 4 Lesson 11a",
+      "title": "She's got blue eyes!",
+      "module": 4,
+      "lesson": "11a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-045",
+      "order": 45,
+      "type": "lesson",
+      "code": "Module 4 Lesson 11b",
+      "title": "She's got blue eyes!",
+      "module": 4,
+      "lesson": "11b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-046",
+      "order": 46,
+      "type": "lesson",
+      "code": "Module 4 Lesson 12a",
+      "title": "Teddy's Wonderful!",
+      "module": 4,
+      "lesson": "12a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-047",
+      "order": 47,
+      "type": "lesson",
+      "code": "Module 4 Lesson 12b",
+      "title": "Teddy's Wonderful!",
+      "module": 4,
+      "lesson": "12b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-048",
+      "order": 48,
+      "type": "lesson",
+      "code": "Module 4 Lesson 12c",
+      "title": "Revision",
+      "module": 4,
+      "lesson": "12c",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-049",
+      "order": 49,
+      "type": "lesson",
+      "code": "Module 4 Now I know",
+      "title": null,
+      "module": 4,
+      "sectionType": "review"
+    },
+    {
+      "id": "g2-050",
+      "order": 50,
+      "type": "lesson",
+      "code": "Module 4 Test",
+      "title": null,
+      "module": 4,
+      "sectionType": "test"
+    },
+    {
+      "id": "g2-051",
+      "order": 51,
+      "type": "lesson",
+      "code": "Module 5 Lesson 13a",
+      "title": "My Holidays!",
+      "module": 5,
+      "lesson": "13a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-052",
+      "order": 52,
+      "type": "lesson",
+      "code": "Module 5 Lesson 13b",
+      "title": "My Holidays!",
+      "module": 5,
+      "lesson": "13b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-053",
+      "order": 53,
+      "type": "lesson",
+      "code": "Module 5 Lesson 14a",
+      "title": "It's Windy!",
+      "module": 5,
+      "lesson": "14a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-054",
+      "order": 54,
+      "type": "lesson",
+      "code": "Module 5 Lesson 14b",
+      "title": "It's Windy!",
+      "module": 5,
+      "lesson": "14b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-055",
+      "order": 55,
+      "type": "lesson",
+      "code": "Module 5 Lesson 15a",
+      "title": "A Magic Island!",
+      "module": 5,
+      "lesson": "15a",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-056",
+      "order": 56,
+      "type": "lesson",
+      "code": "Module 5 Lesson 15b",
+      "title": "A Magic Island!",
+      "module": 5,
+      "lesson": "15b",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-057",
+      "order": 57,
+      "type": "lesson",
+      "code": "Module 5 Lesson 15c",
+      "title": "Revision",
+      "module": 5,
+      "lesson": "15c",
+      "sectionType": "module"
+    },
+    {
+      "id": "g2-058",
+      "order": 58,
+      "type": "lesson",
+      "code": "Module 5 Now I know",
+      "title": null,
+      "module": 5,
+      "sectionType": "review"
+    },
+    {
+      "id": "g2-059",
+      "order": 59,
+      "type": "lesson",
+      "code": "Module 5 Test",
+      "title": null,
+      "module": 5,
+      "sectionType": "test"
+    },
+    {
+      "id": "g2-060",
+      "order": 60,
+      "type": "lesson",
+      "code": "Module 5 Final lesson",
+      "title": null,
+      "module": 5,
+      "sectionType": "final"
+    },
+    {
+      "id": "g2-061",
+      "order": 61,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g2-062",
+      "order": 62,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g2-063",
+      "order": 63,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g2-064",
+      "order": 64,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g2-065",
+      "order": 65,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    },
+    {
+      "id": "g2-066",
+      "order": 66,
+      "type": "reserve",
+      "code": "Reserve",
+      "title": null
+    }
+  ]
+}
