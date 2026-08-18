@@ -192,3 +192,24 @@ body:before{content:'';position:fixed;inset:-50px;z-index:-2;background:url('../
  .week-page>.date-navigation .week-range,.month-page>.date-navigation .month-label{font-size:17px}
  .week-page>.date-navigation .grade-filter,.month-page>.date-navigation .grade-filter{width:min(245px,100%)}
 }
+
+@media(max-width:780px){
+ /* Keep the primary row markers on one optical center line. */
+ .lesson-row .lesson-number{align-self:center;justify-self:center;flex:0 0 34px;min-width:34px;min-height:34px;aspect-ratio:1}
+ .lesson-row .class-badge{grid-row:1/3;align-self:center;justify-self:center}
+ .lesson-row .row-icons{align-self:center;justify-self:center}
+ .lesson-row-day .class-badge{grid-column:3;grid-row:1/3}
+ .lesson-row-day .lesson-chevron{align-self:center;justify-self:center}
+
+ /* Week scrolls as one grid; the time column is intentionally not sticky. */
+ .week-heading.time-heading,.week-time{position:static;left:auto;z-index:auto;box-shadow:none}
+ .week-heading.time-heading{background:transparent}.week-time{background:rgba(255,255,255,.6)}
+ .week-time b{width:39px;height:39px;min-width:39px;min-height:39px;flex:0 0 39px;aspect-ratio:1;border-radius:50%;place-items:center;line-height:1}
+
+ /* Match the compact Day filter without disturbing symmetrical arrows/title. */
+ .week-page>.date-navigation .grade-filter,.month-page>.date-navigation .grade-filter{width:170px;max-width:170px}
+}
+
+@media(max-width:390px){
+ .week-page>.date-navigation .grade-filter,.month-page>.date-navigation .grade-filter{width:160px;max-width:160px}
+}
