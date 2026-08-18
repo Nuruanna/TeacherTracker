@@ -31,6 +31,7 @@ import {
   PASTEL_PALETTE,
   teachingGroupColorStyle,
 } from "../data/pastelPalette";
+import { useAuth } from "../auth/AuthProvider";
 
 const tabs = [
   "Academic Calendar",
@@ -1159,9 +1160,21 @@ function ImportPreview({ preview, current, affected, close, apply }) {
 }
 
 function DataTab({ state, update }) {
+  const { session, signOut } = useAuth();
   const input = useRef();
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
+  const [logoutError, setLogoutError] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
+  const logOut = async () => {
+    setLoggingOut(true);
+    setLogoutError("");
+    const result = await signOut();
+    if (result.error) {
+      setLogoutError(result.error);
+      setLoggingOut(false);
+    }
+  };
   return (
     <div className="data-settings">
       <section>
@@ -1203,6 +1216,17 @@ function DataTab({ state, update }) {
           }
         />
         <Notice message={message} />
+      </section>
+      <section className="account-settings">
+        <h2>Account</h2>
+        <p>
+          Signed in as <strong>{session?.user?.email || "Teacher"}</strong>.
+          Logging out will not remove the Tracker data stored in this browser.
+        </p>
+        <button className="logout-action" onClick={logOut} disabled={loggingOut}>
+          {loggingOut ? "Logging out…" : "Log out"}
+        </button>
+        <Notice message={logoutError} />
       </section>
       {preview && (
         <div className="lesson-modal-backdrop">
