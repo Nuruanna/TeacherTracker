@@ -1,6 +1,8 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 
 const TABLE = 'app_states';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const realtimeChannels = new Map();
 const REQUIRED_STATE_FIELDS = [
   'schemaVersion',
   'academicCalendar',
@@ -76,6 +78,38 @@ export async function upsertCloudState(state) {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function subscribeToCloudState({ userId, accessToken, onUpdate, onStatus }) {
+  if (!UUID.test(userId || '')) throw new Error('Cannot subscribe without a valid authenticated user ID.');
+  if (!accessToken) throw new Error('Cannot subscribe without the authenticated session token.');
+  await supabase.realtime.setAuth(accessToken);
+  const existing = realtimeChannels.get(userId);
+  if (existing) supabase.removeChannel(existing);
+  const channel = supabase
+    .channel(`app-state-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: TABLE },
+      payload => {
+        if (payload.new?.user_id !== userId) return;
+        if (import.meta.env.DEV) console.info('[cloud persistence] Realtime app_states UPDATE received');
+        onUpdate(payload.new);
+      },
+    )
+    .subscribe((status, error) => {
+      if (import.meta.env.DEV) {
+        const safeError = error ? { message: error.message || String(error), code: error.code, status: error.status } : undefined;
+        console.info(`[cloud persistence] Realtime status: ${status}`, safeError);
+      }
+      onStatus(status, error);
+    });
+  realtimeChannels.set(userId, channel);
+  return () => {
+    if (realtimeChannels.get(userId) !== channel) return;
+    realtimeChannels.delete(userId);
+    return supabase.removeChannel(channel);
+  };
 }
 
 export function cloudStateSummary(state) {

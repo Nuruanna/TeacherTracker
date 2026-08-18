@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { seedState } from '../data/seed';
-import { createDebouncedCloudSaver, loadCloudPrimaryState } from './cloudPersistenceService';
+import { createDebouncedCloudSaver, createRealtimeStateCoordinator, loadCloudPrimaryState, migrateCloudRow } from './cloudPersistenceService';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 
@@ -21,6 +21,24 @@ describe('cloud-primary persistence', () => {
     expect(result.state.academicCalendar.excludedDates).toEqual(['2026-11-04']);
     expect(result.cloudWritable).toBe(true);
     expect(saveCache).toHaveBeenCalledWith(result.state);
+  });
+
+  it('uses the same row migration for a serialized Realtime JSONB payload', () => {
+    const remote = copy(seedState);
+    remote.academicCalendar.academicYear.end = '2027-05-31';
+    const migrated = migrateCloudRow({
+      schema_version: seedState.schemaVersion,
+      state: JSON.stringify(remote),
+      updated_at: '2026-08-19T10:00:00Z',
+    });
+    expect(migrated.academicCalendar.academicYear.end).toBe('2027-05-31');
+    expect(migrated.schemaVersion).toBe(seedState.schemaVersion);
+  });
+
+  it('can read the database schema_version when the JSON has no version field', () => {
+    const remote = copy(seedState);
+    delete remote.schemaVersion;
+    expect(migrateCloudRow({ schema_version: seedState.schemaVersion, state: remote }).schemaVersion).toBe(seedState.schemaVersion);
   });
 
   it('uses a valid cache after a failed fetch without enabling cloud writes', async () => {
@@ -83,5 +101,40 @@ describe('cloud-primary persistence', () => {
     expect(statuses.at(-1)).toEqual({ status: 'sync_error', detail: error });
     expect(log).toHaveBeenCalledWith('[cloud persistence] Save failed.', expect.objectContaining({ code: '42501' }));
     log.mockRestore();
+  });
+
+  it('applies a remote update to memory/cache without queuing another save', async () => {
+    const remote = copy(seedState);
+    remote.academicCalendar.academicYear.end = '2027-05-31';
+    const saver = { isPending: vi.fn(() => false), flush: vi.fn(), queue: vi.fn() };
+    const applyRemote = vi.fn();
+    const coordinator = createRealtimeStateCoordinator({
+      saver,
+      fetchCloud: vi.fn(),
+      migrateRow: migrateCloudRow,
+      getLastUpdatedAt: () => 'older-update',
+      applyRemote,
+      onError: vi.fn(),
+    });
+    await coordinator.receive({ state: remote, updated_at: 'remote-update' });
+    expect(applyRemote).toHaveBeenCalledWith(remote, 'remote-update');
+    expect(saver.queue).not.toHaveBeenCalled();
+  });
+
+  it('ignores an own echo and flushes pending work before refetching a remote update', async () => {
+    const latest = copy(seedState);
+    latest.academicCalendar.excludedDates = ['2026-11-04'];
+    let marker = 'own-update';
+    const saver = { isPending: vi.fn(() => false), flush: vi.fn(), queue: vi.fn() };
+    const applyRemote = vi.fn();
+    const fetchCloud = vi.fn(async () => ({ state: latest, updated_at: 'latest-update' }));
+    const coordinator = createRealtimeStateCoordinator({ saver, fetchCloud, migrateRow: migrateCloudRow, getLastUpdatedAt: () => marker, applyRemote, onError: vi.fn() });
+    await coordinator.receive({ state: latest, updated_at: 'own-update' });
+    expect(applyRemote).not.toHaveBeenCalled();
+    saver.isPending.mockReturnValue(true);
+    await coordinator.receive({ state: copy(seedState), updated_at: 'remote-update' });
+    expect(saver.flush).toHaveBeenCalledOnce();
+    expect(fetchCloud).toHaveBeenCalledOnce();
+    expect(applyRemote).toHaveBeenCalledWith(latest, 'latest-update');
   });
 });

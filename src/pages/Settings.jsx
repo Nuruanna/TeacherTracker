@@ -65,7 +65,7 @@ const Notice = ({ message }) =>
     </p>
   ) : null;
 
-export default function Settings({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
+export default function Settings({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realtimeStatus, lastRealtimeEvent, lastRemoteUpdatedAt }) {
   const [tab, setTab] = useState(tabs[0]);
   const [dirty, setDirty] = useState(false);
   useEffect(() => {
@@ -118,41 +118,46 @@ export default function Settings({ state, update, cloudStatus, cloudError, cloud
       </nav>
       <section className="settings-panel card">
         {tab === "Academic Calendar" && (
-          <CalendarTab state={state} update={update} dirty={setDirty} />
+          <CalendarTab state={state} update={update} dirty={setDirty} isDirty={dirty} />
         )}{" "}
         {tab === "Schedule" && (
-          <ScheduleTab state={state} update={update} dirty={setDirty} />
+          <ScheduleTab state={state} update={update} dirty={setDirty} isDirty={dirty} />
         )}{" "}
         {tab === "Classes" && (
           <GroupsTab state={state} update={update} dirty={setDirty} />
         )}{" "}
         {tab === "Course Maps" && (
-          <MapsTab state={state} update={update} dirty={setDirty} />
+          <MapsTab state={state} update={update} dirty={setDirty} isDirty={dirty} />
         )}{" "}
-        {tab === "Data" && <DataTab state={state} update={update} cloudStatus={cloudStatus} cloudError={cloudError} cloudUpdatedAt={cloudUpdatedAt} />}
+        {tab === "Data" && <DataTab state={state} update={update} cloudStatus={cloudStatus} cloudError={cloudError} cloudUpdatedAt={cloudUpdatedAt} realtimeStatus={realtimeStatus} lastRealtimeEvent={lastRealtimeEvent} lastRemoteUpdatedAt={lastRemoteUpdatedAt} />}
       </section>
     </div>
   );
 }
 
-function CalendarTab({ state, update, dirty }) {
-  const [draft, setDraft] = useState(() => {
-    const calendar = clone(state.academicCalendar);
-    const saved = calendar.schoolBreaks || [];
-    return {
-      ...calendar,
-      schoolBreaks: schoolBreakNames.map((label, index) => {
-        const existing = saved.find((item) => item.label === label) || saved[index];
-        return {
-          id: `school-break-${label.toLowerCase().split(" ")[0]}`,
-          label,
-          start: existing?.start || "",
-          end: existing?.end || "",
-        };
-      }),
-    };
-  });
+const calendarDraft = state => {
+  const calendar = clone(state.academicCalendar);
+  const saved = calendar.schoolBreaks || [];
+  return {
+    ...calendar,
+    schoolBreaks: schoolBreakNames.map((label, index) => {
+      const existing = saved.find((item) => item.label === label) || saved[index];
+      return {
+        id: `school-break-${label.toLowerCase().split(" ")[0]}`,
+        label,
+        start: existing?.start || "",
+        end: existing?.end || "",
+      };
+    }),
+  };
+};
+
+function CalendarTab({ state, update, dirty, isDirty }) {
+  const [draft, setDraft] = useState(() => calendarDraft(state));
   const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (!isDirty) setDraft(calendarDraft(state));
+  }, [state.academicCalendar, isDirty]);
   const change = (next) => {
     setDraft(next);
     dirty(true);
@@ -323,7 +328,7 @@ function CalendarTab({ state, update, dirty }) {
   );
 }
 
-function ScheduleTab({ state, update, dirty }) {
+function ScheduleTab({ state, update, dirty, isDirty }) {
   const [mode, setMode] = useState("bells");
   return (
     <>
@@ -342,14 +347,14 @@ function ScheduleTab({ state, update, dirty }) {
         </button>
       </div>
       {mode === "bells" ? (
-        <BellEditor state={state} update={update} dirty={dirty} />
+        <BellEditor state={state} update={update} dirty={dirty} isDirty={isDirty} />
       ) : (
-        <TimetableEditor state={state} update={update} dirty={dirty} />
+        <TimetableEditor state={state} update={update} dirty={dirty} isDirty={isDirty} />
       )}
     </>
   );
 }
-function BellEditor({ state, update, dirty }) {
+function BellEditor({ state, update, dirty, isDirty }) {
   const current =
     activeBellSchedule(
       state.bellSchedules,
@@ -361,6 +366,9 @@ function BellEditor({ state, update, dirty }) {
     effectiveFrom: state.academicCalendar.academicYear.start,
   }));
   const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (!isDirty) setDraft({ ...clone(current), id: "", effectiveFrom: state.academicCalendar.academicYear.start });
+  }, [current, state.academicCalendar.academicYear.start, isDirty]);
   const change = (next) => {
     setDraft(next);
     dirty(true);
@@ -457,11 +465,14 @@ function BellEditor({ state, update, dirty }) {
     </div>
   );
 }
-function TimetableEditor({ state, update, dirty }) {
+function TimetableEditor({ state, update, dirty, isDirty }) {
   const max = Math.max(
     ...state.bellSchedules.flatMap((x) => x.slots.map((s) => s.lessonNumber)),
   );
   const [entries, setEntries] = useState(() => clone(state.weeklyTimetable));
+  useEffect(() => {
+    if (!isDirty) setEntries(clone(state.weeklyTimetable));
+  }, [state.weeklyTimetable, isDirty]);
   const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
   const [message, setMessage] = useState("");
   const setCell = (day, lessonNumber, id) => {
@@ -890,10 +901,13 @@ function GroupModal({ state, group, update, close, dirty }) {
   );
 }
 
-function MapsTab({ state, update, dirty }) {
+function MapsTab({ state, update, dirty, isDirty }) {
   const ids = Object.keys(state.courseMaps);
   const [id, setId] = useState(ids[0]);
   const [draft, setDraft] = useState(() => clone(state.courseMaps[ids[0]]));
+  useEffect(() => {
+    if (!isDirty && state.courseMaps[id]) setDraft(clone(state.courseMaps[id]));
+  }, [state.courseMaps, id, isDirty]);
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
   const input = useRef();
@@ -1159,7 +1173,7 @@ function ImportPreview({ preview, current, affected, close, apply }) {
   );
 }
 
-function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
+function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realtimeStatus, lastRealtimeEvent, lastRemoteUpdatedAt }) {
   const { session, signOut } = useAuth();
   const input = useRef();
   const [preview, setPreview] = useState(null);
@@ -1169,7 +1183,7 @@ function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
   const formatCloudDate = (value) => value
     ? new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" }).format(new Date(value))
     : "Not available";
-  const cloudLabels = { loading: "Loading…", saved: "Saved", saving: "Saving…", offline: "Offline", sync_error: "Sync error", not_initialized: "Not initialized" };
+  const cloudLabels = { loading: "Loading…", saved: "Saved", live: "Live", saving: "Saving…", offline: "Offline", sync_error: "Sync error", not_initialized: "Not initialized" };
   const logOut = async () => {
     setLoggingOut(true);
     setLogoutError("");
@@ -1224,11 +1238,17 @@ function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
       <section className="cloud-settings">
         <h2>Cloud Sync</h2>
         <p>
-          Automatic cloud persistence: <strong>{cloudStatus === "saved" || cloudStatus === "saving" ? "Enabled" : "Unavailable"}</strong>
+          Automatic cloud persistence: <strong>{cloudStatus === "saved" || cloudStatus === "live" || cloudStatus === "saving" ? "Enabled" : "Unavailable"}</strong>
           <br />
           Status: <strong>{cloudLabels[cloudStatus] || "Unavailable"}</strong>
           <br />
           Last cloud update: {formatCloudDate(cloudUpdatedAt)}
+          <br />
+          Realtime status: <strong>{realtimeStatus}</strong>
+          <br />
+          Last realtime event: {lastRealtimeEvent ? formatCloudDate(lastRealtimeEvent) : "Never"}
+          <br />
+          Last remote updated_at: {lastRemoteUpdatedAt ? formatCloudDate(lastRemoteUpdatedAt) : "Never"}
         </p>
         <Notice message={cloudError?.message || (cloudStatus === "offline" ? "Cloud is unavailable. Changes are being kept in the local cache and will not overwrite the unknown cloud state." : cloudStatus === "not_initialized" ? "No cloud state exists. Automatic uploads are disabled for safety." : "")} />
       </section>
