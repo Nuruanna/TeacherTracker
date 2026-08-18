@@ -65,7 +65,7 @@ const Notice = ({ message }) =>
     </p>
   ) : null;
 
-export default function Settings({ state, update }) {
+export default function Settings({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
   const [tab, setTab] = useState(tabs[0]);
   const [dirty, setDirty] = useState(false);
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function Settings({ state, update }) {
         {tab === "Course Maps" && (
           <MapsTab state={state} update={update} dirty={setDirty} />
         )}{" "}
-        {tab === "Data" && <DataTab state={state} update={update} />}
+        {tab === "Data" && <DataTab state={state} update={update} cloudStatus={cloudStatus} cloudError={cloudError} cloudUpdatedAt={cloudUpdatedAt} />}
       </section>
     </div>
   );
@@ -1159,13 +1159,17 @@ function ImportPreview({ preview, current, affected, close, apply }) {
   );
 }
 
-function DataTab({ state, update }) {
+function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt }) {
   const { session, signOut } = useAuth();
   const input = useRef();
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
   const [logoutError, setLogoutError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const formatCloudDate = (value) => value
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" }).format(new Date(value))
+    : "Not available";
+  const cloudLabels = { loading: "Loading…", saved: "Saved", saving: "Saving…", offline: "Offline", sync_error: "Sync error", not_initialized: "Not initialized" };
   const logOut = async () => {
     setLoggingOut(true);
     setLogoutError("");
@@ -1216,6 +1220,17 @@ function DataTab({ state, update }) {
           }
         />
         <Notice message={message} />
+      </section>
+      <section className="cloud-settings">
+        <h2>Cloud Sync</h2>
+        <p>
+          Automatic cloud persistence: <strong>{cloudStatus === "saved" || cloudStatus === "saving" ? "Enabled" : "Unavailable"}</strong>
+          <br />
+          Status: <strong>{cloudLabels[cloudStatus] || "Unavailable"}</strong>
+          <br />
+          Last cloud update: {formatCloudDate(cloudUpdatedAt)}
+        </p>
+        <Notice message={cloudError?.message || (cloudStatus === "offline" ? "Cloud is unavailable. Changes are being kept in the local cache and will not overwrite the unknown cloud state." : cloudStatus === "not_initialized" ? "No cloud state exists. Automatic uploads are disabled for safety." : "")} />
       </section>
       <section className="account-settings">
         <h2>Account</h2>

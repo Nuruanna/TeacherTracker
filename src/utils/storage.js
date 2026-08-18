@@ -3,12 +3,32 @@ import { DEFAULT_GRADE_COLORS } from '../data/pastelPalette';
 import { removePhantomLessonsOutsideAcademicYear } from '../services/historicalSafetyService';
 const STORAGE_KEY = 'teacher-lesson-tracker';
 const clone = value => JSON.parse(JSON.stringify(value));
+
+const validAcademicYear = value => value
+  && typeof value === 'object'
+  && typeof value.start === 'string'
+  && typeof value.end === 'string'
+  && value.start.length > 0
+  && value.end.length > 0;
+
+function preserveAcademicCalendar(migrated, saved) {
+  const savedCalendar = saved?.academicCalendar;
+  if (!savedCalendar || typeof savedCalendar !== 'object') return migrated;
+  const calendar = { ...clone(seedState.academicCalendar), ...(migrated.academicCalendar || {}) };
+  if (validAcademicYear(savedCalendar.academicYear)) calendar.academicYear = clone(savedCalendar.academicYear);
+  for (const field of ['schoolBreaks', 'noSchoolDays', 'excludedDates']) {
+    if (Array.isArray(savedCalendar[field])) calendar[field] = clone(savedCalendar[field]);
+  }
+  return { ...migrated, academicCalendar: calendar };
+}
+
 export function migrateState(saved) {
   if (!saved || typeof saved !== 'object') return clone(seedState);
-  if (saved.schemaVersion === seedState.schemaVersion) return saved;
-  if (Number(saved.schemaVersion) === 9) return removePhantomLessonsOutsideAcademicYear({...saved,schemaVersion:seedState.schemaVersion});
-  if (Number(saved.schemaVersion) === 8) {
-    return removePhantomLessonsOutsideAcademicYear({
+  let migrated;
+  if (Number(saved.schemaVersion) === seedState.schemaVersion) migrated = saved;
+  else if (Number(saved.schemaVersion) === 9) migrated = removePhantomLessonsOutsideAcademicYear({...saved,schemaVersion:seedState.schemaVersion});
+  else if (Number(saved.schemaVersion) === 8) {
+    migrated = removePhantomLessonsOutsideAcademicYear({
       ...saved,
       schemaVersion: seedState.schemaVersion,
       academicCalendar: {
@@ -20,7 +40,7 @@ export function migrateState(saved) {
       },
     });
   }
-  if (Number(saved.schemaVersion)<8) {
+  else if (Number(saved.schemaVersion)<8) {
     const academicCalendar=clone(saved.academicCalendar||seedState.academicCalendar);
     const start=academicCalendar.academicYear?.start||seedState.academicCalendar.academicYear.start;
     const teachingGroups=clone(seedState.teachingGroups).map(group=>({...group,activeFrom:start}));
@@ -35,9 +55,9 @@ export function migrateState(saved) {
     if(saved.settings)reset.settings=clone(saved.settings);
     if(saved.appSettings)reset.appSettings=clone(saved.appSettings);
     if(saved.preferences)reset.preferences=clone(saved.preferences);
-    return reset;
+    migrated = reset;
   }
-  if ([1,2,3,4,5,6].includes(saved.schemaVersion)) {
+  else if ([1,2,3,4,5,6].includes(saved.schemaVersion)) {
     const teachingGroups=(saved.teachingGroups||saved.classes||seedState.teachingGroups).map(group=>({...group,type:group.type||'class',color:group.color||DEFAULT_GRADE_COLORS[group.grade]||'lavender',activeFrom:group.activeFrom||'2026-01-01',archivedAt:group.archivedAt||null}));
     const migrated = {
       ...clone(seedState),
@@ -59,16 +79,28 @@ export function migrateState(saved) {
     };
     delete migrated.classes;
     delete migrated.courseProgress;
-    return migrated;
+    return preserveAcademicCalendar(migrated, saved);
   }
-  return clone(seedState);
+  else migrated = clone(seedState);
+  return preserveAcademicCalendar(migrated, saved);
 }
 export function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved) { const migrated=migrateState(saved); saveState(migrated); return migrated; }
-  } catch { /* Invalid local data is safely replaced with the seed. */ }
+  const cached = loadCachedState();
+  if (cached) { saveState(cached); return cached; }
   const initial = clone(seedState); saveState(initial); return initial;
+}
+export function loadCachedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    const version = Number(saved?.schemaVersion);
+    if (!Number.isInteger(version) || version < 1 || version > seedState.schemaVersion) return null;
+    const migrated = migrateState(saved);
+    if (!migrated || Number(migrated.schemaVersion) !== seedState.schemaVersion) return null;
+    if (!Array.isArray(migrated.teachingGroups) || !migrated.courseMaps || !migrated.academicCalendar) return null;
+    return migrated;
+  } catch { return null; }
 }
 export function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 export { STORAGE_KEY };

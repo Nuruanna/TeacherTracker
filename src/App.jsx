@@ -10,11 +10,16 @@ import Placeholder from './pages/Placeholder';
 import Settings from './pages/Settings';
 import Month from './pages/Month';
 import { useAppStore } from './hooks/useAppStore';
+import { useAuth } from './auth/AuthProvider';
 
 export default function App() {
-  const { state, update, ready } = useAppStore();
-  if (!ready) return null;
-  return <div className="app-shell"><Header /><main>
+  const { session } = useAuth();
+  const { state, update, ready, cloudStatus, cloudError, cloudUpdatedAt } = useAppStore(session?.user?.id);
+  if (!ready) return <main className="auth-screen"><section className="auth-card auth-loading">Loading cloud data…</section></main>;
+  const statusLabels = { saved: 'Saved', saving: 'Saving…', offline: 'Offline', sync_error: 'Sync error', not_initialized: 'Cloud not initialized' };
+  return <div className="app-shell">
+    <div className={`cloud-persistence-status ${cloudStatus}`} role="status" aria-live="polite">{statusLabels[cloudStatus] || cloudStatus}</div>
+    <Header /><main>
     <Routes>
       <Route path="/" element={<Dashboard state={state} />} />
       <Route path="/day" element={<Day state={state} />} />
@@ -23,7 +28,7 @@ export default function App() {
       <Route path="/classes" element={<Classes state={state} />} />
       <Route path="/classes/:id" element={<ClassDetails state={state} update={update} />} />
       <Route path="/lesson/:id" element={<LessonDetails state={state} update={update} />} />
-      <Route path="/settings" element={<Settings state={state} update={update} />} />
+      <Route path="/settings" element={<Settings state={state} update={update} cloudStatus={cloudStatus} cloudError={cloudError} cloudUpdatedAt={cloudUpdatedAt} />} />
     </Routes>
   </main></div>;
 }
