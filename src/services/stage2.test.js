@@ -3,7 +3,7 @@ import { seedState } from '../data/seed';
 import { dayLessonSlots,filterLessonsByGrade,lessonsForDate,shortCourseCode } from './lessonViewService';
 import { lessonRowStatusTypes,weekStatusType } from '../utils/lessons';
 
-beforeAll(()=>{vi.useFakeTimers();vi.setSystemTime(new Date(2026,7,17,10));});
+beforeAll(()=>{vi.useFakeTimers();vi.setSystemTime(new Date('2026-08-17T10:00:00+10:00'));});
 afterAll(()=>vi.useRealTimers());
 
 describe('Stage 2 lesson views',()=>{
@@ -22,7 +22,7 @@ describe('Stage 2 lesson views',()=>{
 
 describe('shared status placement rules',()=>{
  const upcoming={date:'2026-08-17',end:'12:00',manualStatus:null,needsAttention:false,carriedIn:''};
- const now=new Date(2026,7,17,10);
+ const now=new Date('2026-08-17T10:00:00+10:00');
  it('ends every normal row with its temporal status',()=>expect(lessonRowStatusTypes(upcoming,now)).toEqual(['upcoming']));
  it('orders optional statuses before the temporal status',()=>expect(lessonRowStatusTypes({...upcoming,manualStatus:'rescheduled',needsAttention:true,carriedIn:'Work'},now)).toEqual(['rescheduled','attention','upcoming']));
  it('renders no warning without carried content',()=>expect(lessonRowStatusTypes({...upcoming,needsAttention:true},now)).toEqual(['upcoming']));
