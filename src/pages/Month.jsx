@@ -8,13 +8,15 @@ import { filterLessonsByGrade,lessonsForDate,shortCourseCode } from '../services
 import { monthSchoolWeeks } from '../services/monthViewService';
 import { teachingGroupFor } from '../services/teachingGroupService';
 import { isoDate } from '../utils/date';
+import { getAppTodayISO } from '../utils/appTime';
+import { useAppNow } from '../hooks/useAppNow';
 
 const weekdays=['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const monthLabel=date=>new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric'}).format(date);
 const moveMonth=(date,amount)=>new Date(date.getFullYear(),date.getMonth()+amount,1,12);
 
 export default function Month({state}){
- const [queryDate,setQueryDate]=useDateQuery('month');const month=new Date(queryDate.getFullYear(),queryDate.getMonth(),1,12);const [filter,setFilter]=useState('all');const navigate=useNavigate();const weeks=monthSchoolWeeks(month);const today=isoDate(new Date());
+ const now=useAppNow();const [queryDate,setQueryDate]=useDateQuery('month');const month=new Date(queryDate.getFullYear(),queryDate.getMonth(),1,12);const [filter,setFilter]=useState('all');const navigate=useNavigate();const weeks=monthSchoolWeeks(month);const today=getAppTodayISO(now);
  const openDay=date=>navigate(`/day?date=${isoDate(date)}`);
  return <div className="month-page internal-page"><DateNavigation leftLabel="Previous month" rightLabel="Next month" onPrevious={()=>setQueryDate(moveMonth(month,-1))} onNext={()=>setQueryDate(moveMonth(month,1))}><h1 className="month-label">{monthLabel(month)}</h1><GradeFilter teachingGroups={state.teachingGroups} date={isoDate(month)} value={filter} onChange={setFilter}/></DateNavigation><div className="month-calendar-scroll"><div className="month-calendar"><header className="month-weekdays">{weekdays.map(day=><div key={day}>{day}</div>)}</header><section className="month-grid" aria-label={monthLabel(month)}>{weeks.flatMap((week,weekIndex)=>week.map(({date,inMonth},dayIndex)=>inMonth?<DayCard key={isoDate(date)} state={state} date={date} filter={filter} current={isoDate(date)===today} openDay={openDay}/>:<div className="month-placeholder" aria-hidden="true" key={`empty-${weekIndex}-${dayIndex}`}/>))}</section></div></div></div>;
 }

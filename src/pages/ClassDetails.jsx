@@ -18,15 +18,18 @@ import {
 } from "../services/classViewService";
 import { lessonStatus } from "../utils/lessons";
 import { dayMonthYear, parseIsoDate, weekday } from "../utils/date";
+import { useAppNow } from "../hooks/useAppNow";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 
 const PositionModal = ({ state, group, current, onClose, onChange }) => {
+  const requestConfirmation = useConfirmDialog();
   const [selected, setSelected] = useState(current?.id || "");
   const items = plannedCourseItems(state, group);
   const target = items.find((item) => item.id === selected);
-  const confirm = () => {
+  const confirm = async () => {
     if (!target) return;
     const message = `${group.displayName} will be moved from:\n${current ? `${current.code}${current.title ? ` — ${current.title}` : ""}` : "Not started"}\n\nto:\n${target.code}${target.title ? ` — ${target.title}` : ""}\n\nFuture lesson assignments for this class will be recalculated. Historical completed lessons will not be changed.`;
-    if (window.confirm(`Change Course Map position?\n\n${message}`))
+    if (await requestConfirmation({ title: "Change Course Map position?", message, confirmLabel: "Change position", cancelLabel: "Keep position" }))
       onChange(target.id);
   };
   return (
@@ -84,10 +87,10 @@ export default function ClassDetails({ state, update }) {
   const [tab, setTab] = useState("history");
   const [positionOpen, setPositionOpen] = useState(false);
   const group = state.teachingGroups.find((item) => item.id === id);
-  const now = new Date();
+  const now = useAppNow();
   const overview = useMemo(
     () => (group ? classOverview(state, group, now) : null),
-    [state, id],
+    [state, id, now],
   );
   if (!group)
     return (

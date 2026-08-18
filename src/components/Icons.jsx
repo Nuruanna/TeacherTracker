@@ -40,6 +40,7 @@ const lessonDetailSymbols={
  notes:<><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2v4M15 2v4M8.5 10h7M8.5 14h7M8.5 18h4"/></>,
  homework:<><path d="M4 6h6c1.2 0 2 .4 2 1.3C12 6.4 12.8 6 14 6h6v13h-6c-1.1 0-1.7.3-2 1-.3-.7-.9-1-2-1H4V6Z"/><path d="M12 7.3V20"/></>,
  link:<><path d="M9.5 14.5 14.5 9M7.8 17.7l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.2 6.3l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></>,
+ image:<><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m5.5 17 4.2-4.2 3.1 3.1 2.2-2.2 3.5 3.3"/></>,
  cancel:<><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7M15.5 8.5l-7 7"/></>,
  reschedule:<><path d="M19 8V3l-2 2a8 8 0 1 0 2.1 8"/><path d="M19 3h-5"/></>,
 };

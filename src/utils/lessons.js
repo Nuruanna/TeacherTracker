@@ -3,8 +3,7 @@ export function lessonStatus(lesson, now = new Date()) {
   return temporalLessonStatus(lesson, now);
 }
 export function temporalLessonStatus(lesson, now = new Date()) {
-  const end = new Date(`${lesson.date}T${lesson.end}:00`);
-  return now >= end ? 'completed' : 'upcoming';
+  return compareSchoolDateTime(lesson, now) >= 0 ? 'completed' : 'upcoming';
 }
 export const hasCarriedAttention = lesson => Boolean(lesson.needsAttention && lesson.carriedIn);
 export function lessonRowStatusTypes(lesson,now=new Date()) {
@@ -13,7 +12,8 @@ export function lessonRowStatusTypes(lesson,now=new Date()) {
 }
 export const weekStatusType=(lesson,now=new Date())=>lesson.manualStatus==='cancelled'?'cancelled':temporalLessonStatus(lesson,now);
 export const classFor = teachingGroupFor;
-const todayIso = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const todayIso = () => getAppTodayISO();
 export const todaysLessons = (state, date = todayIso()) => state.lessons.filter(x => x.date === date).sort((a,b) => a.number-b.number);
 export const missingHomework = (state, now) => state.lessons.filter(x => lessonStatus(x, now) === 'completed' && !x.homework);
 import { teachingGroupFor } from '../services/teachingGroupService';
+import { compareSchoolDateTime, getAppTodayISO } from './appTime';

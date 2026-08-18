@@ -32,6 +32,8 @@ import {
   teachingGroupColorStyle,
 } from "../data/pastelPalette";
 import { useAuth } from "../auth/AuthProvider";
+import { formatInAppTimezone, getAppTodayISO } from "../utils/appTime";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 
 const tabs = [
   "Academic Calendar",
@@ -66,11 +68,13 @@ const Notice = ({ message }) =>
   ) : null;
 
 export default function Settings({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realtimeStatus, lastRealtimeEvent, lastRemoteUpdatedAt }) {
+  const requestConfirmation = useConfirmDialog();
   const [tab, setTab] = useState(tabs[0]);
   const [dirty, setDirty] = useState(false);
+  const confirmedNavigation = useRef(false);
   useEffect(() => {
     const warn = (event) => {
-      if (dirty) {
+      if (dirty && !confirmedNavigation.current) {
         event.preventDefault();
         event.returnValue = "";
       }
@@ -79,22 +83,34 @@ export default function Settings({ state, update, cloudStatus, cloudError, cloud
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   useEffect(() => {
-    const guard = (event) => {
+    const guard = async (event) => {
       const link = event.target.closest?.("a[href]");
-      if (
-        dirty &&
-        link &&
-        !window.confirm("Leave Settings and discard unsaved changes?")
-      ) {
+      if (dirty && link) {
         event.preventDefault();
         event.stopPropagation();
+        if (await requestConfirmation({
+          title: "Leave Settings?",
+          message: "Your unsaved Settings changes will be discarded.",
+          confirmLabel: "Discard and leave",
+          cancelLabel: "Keep editing",
+          destructive: true,
+        })) {
+          confirmedNavigation.current = true;
+          window.location.assign(link.href);
+        }
       }
     };
     document.addEventListener("click", guard, true);
     return () => document.removeEventListener("click", guard, true);
-  }, [dirty]);
-  const changeTab = (next) => {
-    if (!dirty || window.confirm("Discard unsaved Settings changes?")) {
+  }, [dirty, requestConfirmation]);
+  const changeTab = async (next) => {
+    if (!dirty || await requestConfirmation({
+      title: "Discard unsaved changes?",
+      message: "Changes made in this Settings section will be lost.",
+      confirmLabel: "Discard changes",
+      cancelLabel: "Keep editing",
+      destructive: true,
+    })) {
       setTab(next);
       setDirty(false);
     }
@@ -358,7 +374,7 @@ function BellEditor({ state, update, dirty, isDirty }) {
   const current =
     activeBellSchedule(
       state.bellSchedules,
-      new Date().toISOString().slice(0, 10),
+      getAppTodayISO(),
     ) || state.bellSchedules.at(-1);
   const [draft, setDraft] = useState(() => ({
     ...clone(current),
@@ -473,7 +489,7 @@ function TimetableEditor({ state, update, dirty, isDirty }) {
   useEffect(() => {
     if (!isDirty) setEntries(clone(state.weeklyTimetable));
   }, [state.weeklyTimetable, isDirty]);
-  const [from, setFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [from, setFrom] = useState(getAppTodayISO);
   const [message, setMessage] = useState("");
   const setCell = (day, lessonNumber, id) => {
     const retained = entries.filter(
@@ -589,6 +605,7 @@ function TimetableEditor({ state, update, dirty, isDirty }) {
 }
 
 function GroupsTab({ state, update, dirty }) {
+  const requestConfirmation = useConfirmDialog();
   const [editing, setEditing] = useState(null);
   return (
     <div className="settings-stack">
@@ -630,17 +647,19 @@ function GroupsTab({ state, update, dirty }) {
                 <button onClick={() => setEditing(group)}>Edit</button>
                 <button
                   className="danger-link"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Archive ${group.displayName}?\n\nFuture lessons will stop being generated. Historical lesson records will remain available.`,
-                      )
-                    )
+                  onClick={async () => {
+                    if (await requestConfirmation({
+                      title: `Archive ${group.displayName}?`,
+                      message: "Future lessons will stop being generated. Historical lesson records will remain available.",
+                      confirmLabel: "Archive class",
+                      cancelLabel: "Keep class",
+                      destructive: true,
+                    }))
                       update((current) =>
                         archiveTeachingGroup(
                           current,
                           group.id,
-                          new Date().toISOString().slice(0, 10),
+                          getAppTodayISO(),
                         ),
                       );
                   }}
@@ -679,6 +698,7 @@ const newGroup = (state) => ({
   archivedAt: null,
 });
 function GroupModal({ state, group, update, close, dirty }) {
+  const requestConfirmation = useConfirmDialog();
   const [draft, setDraft] = useState(clone(group));
   const [slots, setSlots] = useState(() =>
     state.weeklyTimetable
@@ -698,20 +718,19 @@ function GroupModal({ state, group, update, close, dirty }) {
     dirty(true);
   };
   const conflicts = findScheduleConflicts(state, draft, slots);
-  const save = () => {
+  const save = async () => {
     try {
       const result = saveTeachingGroup(state, draft, slots);
       if (!result.saved) {
         setMessage(result.conflicts.map((x) => x.message).join(" "));
         return;
       }
-      if (
-        group.courseMapId !== draft.courseMapId &&
-        group.courseMapId &&
-        !window.confirm(
-          "Changing Course Map will recalculate future assignments. Historical lessons will not change. Continue?",
-        )
-      )
+      if (group.courseMapId !== draft.courseMapId && group.courseMapId && !await requestConfirmation({
+        title: "Change Course Map?",
+        message: "Future assignments will be recalculated. Historical lessons will not change.",
+        confirmLabel: "Change map",
+        cancelLabel: "Keep current map",
+      }))
         return;
       update(() => result.state);
       close();
@@ -902,6 +921,7 @@ function GroupModal({ state, group, update, close, dirty }) {
 }
 
 function MapsTab({ state, update, dirty, isDirty }) {
+  const requestConfirmation = useConfirmDialog();
   const ids = Object.keys(state.courseMaps);
   const [id, setId] = useState(ids[0]);
   const [draft, setDraft] = useState(() => clone(state.courseMaps[ids[0]]));
@@ -911,8 +931,14 @@ function MapsTab({ state, update, dirty, isDirty }) {
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
   const input = useRef();
-  const select = (next) => {
-    if (!dirty || window.confirm("Discard unsaved Course Map changes?")) {
+  const select = async (next) => {
+    if (!isDirty || await requestConfirmation({
+      title: "Discard unsaved Course Map changes?",
+      message: "Your changes to the current Course Map will be lost.",
+      confirmLabel: "Discard changes",
+      cancelLabel: "Keep editing",
+      destructive: true,
+    })) {
       setId(next);
       setDraft(clone(state.courseMaps[next]));
       dirty(false);
@@ -922,17 +948,17 @@ function MapsTab({ state, update, dirty, isDirty }) {
     setDraft(next);
     dirty(true);
   };
-  const save = () => {
+  const save = async () => {
     try {
       const affected = state.teachingGroups
         .filter((x) => x.courseMapId === id)
         .map((x) => x.displayName);
-      if (
-        affected.length &&
-        !window.confirm(
-          `This map is used by: ${affected.join(", ")}.\nFuture assignments will be recalculated; history will remain unchanged. Continue?`,
-        )
-      )
+      if (affected.length && !await requestConfirmation({
+        title: "Save Course Map changes?",
+        message: `This map is used by: ${affected.join(", ")}.\nFuture assignments will be recalculated; history will remain unchanged.`,
+        confirmLabel: "Save and recalculate",
+        cancelLabel: "Keep editing",
+      }))
         return;
       update((current) => replaceCourseMap(current, id, draft));
       dirty(false);
@@ -1174,6 +1200,7 @@ function ImportPreview({ preview, current, affected, close, apply }) {
 }
 
 function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realtimeStatus, lastRealtimeEvent, lastRemoteUpdatedAt }) {
+  const requestConfirmation = useConfirmDialog();
   const { session, signOut } = useAuth();
   const input = useRef();
   const [preview, setPreview] = useState(null);
@@ -1181,7 +1208,7 @@ function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realt
   const [logoutError, setLogoutError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const formatCloudDate = (value) => value
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" }).format(new Date(value))
+    ? formatInAppTimezone(value, { dateStyle: "long", timeStyle: "short" })
     : "Not available";
   const cloudLabels = { loading: "Loading…", saved: "Saved", live: "Live", saving: "Saving…", offline: "Offline", sync_error: "Sync error", not_initialized: "Not initialized" };
   const logOut = async () => {
@@ -1205,7 +1232,7 @@ function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realt
           className="primary-settings"
           onClick={() =>
             download(
-              `teacher-lesson-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`,
+              `teacher-lesson-tracker-backup-${getAppTodayISO()}.json`,
               exportBackup(state),
             )
           }
@@ -1285,12 +1312,14 @@ function DataTab({ state, update, cloudStatus, cloudError, cloudUpdatedAt, realt
                   <button onClick={() => setPreview(null)}>Cancel</button>
                   <button
                     className="primary-modal-action"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Replace all current local tracker data with this backup?",
-                        )
-                      ) {
+                    onClick={async () => {
+                      if (await requestConfirmation({
+                        title: "Import this backup?",
+                        message: "All current local Tracker data will be replaced with this backup.",
+                        confirmLabel: "Replace data",
+                        cancelLabel: "Keep current data",
+                        destructive: true,
+                      })) {
                         update(() => importBackup(preview.text));
                         setPreview(null);
                         setMessage("Backup imported successfully.");

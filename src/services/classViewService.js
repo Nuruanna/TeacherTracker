@@ -6,6 +6,7 @@ import { weeklyTimetableForDate } from "./timetableService";
 import { addDays, isoDate, parseIsoDate } from "../utils/date";
 import { lessonStatus } from "../utils/lessons";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
+import { compareSchoolDateTime, getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
 
 const DAY_ORDER = [
   "Monday",
@@ -16,7 +17,7 @@ const DAY_ORDER = [
   "Saturday",
   "Sunday",
 ];
-export const activeClassGroups = (state, date = isoDate(new Date())) =>
+export const activeClassGroups = (state, date = getAppTodayISO()) =>
   state.teachingGroups.filter((group) => isTeachingGroupActive(group, date));
 export const courseMapForGroup = (state, group) =>
   group?.courseMapId ? state.courseMaps[group.courseMapId] || null : null;
@@ -36,7 +37,7 @@ export function currentCourseItem(state, group) {
 export function weeklyScheduleForGroup(
   state,
   group,
-  date = isoDate(new Date()),
+  date = getAppTodayISO(),
 ) {
   return weeklyTimetableForDate(state, date)
     .filter((entry) => entry.teachingGroupId === group.id)
@@ -59,11 +60,10 @@ export function weeklyScheduleForGroup(
     });
 }
 
-export function nextLessonForGroup(state, group, now = new Date()) {
+export function nextLessonForGroup(state, group, now = getAppNow()) {
   const calendar = state.academicCalendar?.academicYear;
   if (!calendar) return null;
-  const today = new Date(now);
-  today.setHours(12, 0, 0, 0);
+  const today = getAppDate(now);
   let cursor =
     today < parseIsoDate(calendar.start) ? parseIsoDate(calendar.start) : today;
   const end = parseIsoDate(calendar.end);
@@ -76,19 +76,18 @@ export function nextLessonForGroup(state, group, now = new Date()) {
         item.manualStatus !== "rescheduled",
     );
     for (const lesson of lessons) {
-      const moment = new Date(`${lesson.date}T${lesson.end}:00`);
-      if (moment >= now) return lesson;
+      if (compareSchoolDateTime(lesson, now) <= 0) return lesson;
     }
   }
   return null;
 }
 
-export const lessonHistoryForGroup = (state, group, now = new Date()) =>
+export const lessonHistoryForGroup = (state, group, now = getAppNow()) =>
   state.lessons
     .filter(
       (item) =>
         item.teachingGroupId === group.id &&
-        (new Date(`${item.date}T${item.end || "23:59"}:00`) <= now ||
+        (compareSchoolDateTime({ ...item, end: item.end || "23:59" }, now) >= 0 ||
           item.manualStatus),
     )
     .sort((a, b) =>
@@ -105,7 +104,7 @@ const sectionKey = (item) =>
         : item.sectionType === "reading"
           ? "Reading"
           : item.sectionType || "Course";
-export function currentSectionProgress(state, group, now = new Date()) {
+export function currentSectionProgress(state, group, now = getAppNow()) {
   const current = currentCourseItem(state, group);
   if (!current) return null;
   const items = plannedCourseItems(state, group).filter(
@@ -138,7 +137,7 @@ export function groupedCourseMap(state, group) {
   return groups;
 }
 
-export function courseMapItemState(state, group, item, now = new Date()) {
+export function courseMapItemState(state, group, item, now = getAppNow()) {
   if (item.type === "reserve") return "reserve";
   const planned = plannedCourseItems(state, group);
   const position = Math.max(
@@ -156,11 +155,11 @@ export function courseMapItemState(state, group, item, now = new Date()) {
   return "upcoming";
 }
 
-export function classOverview(state, group, now = new Date()) {
+export function classOverview(state, group, now = getAppNow()) {
   return {
     group,
     currentItem: currentCourseItem(state, group),
-    schedule: weeklyScheduleForGroup(state, group, isoDate(now)),
+    schedule: weeklyScheduleForGroup(state, group, getAppTodayISO(now)),
     nextLesson: nextLessonForGroup(state, group, now),
     capacity: group.courseMapId
       ? calculateTeachingGroupCapacity(state, group.id)

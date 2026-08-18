@@ -8,8 +8,9 @@ import {
 import { isAcademicDateExcluded } from "./academicCalendarService";
 import { weeklyTimetableForDate } from "./timetableService";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
+import { getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
 
-const plannedItemFor = (state, classItem, date, lessonNumber, asOf = new Date()) => {
+const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()) => {
   const map =
     state.courseMaps?.[classItem.courseMapId] ||
     getCourseMap(classItem.courseMapId);
@@ -19,8 +20,7 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = new Date())
     0,
     state.teachingGroupCourseStates?.[classItem.id]?.currentPosition || 0,
   );
-  const today = new Date(asOf);
-  today.setHours(12, 0, 0, 0);
+  const today = getAppDate(asOf);
   const calendarStart = state.academicCalendar?.academicYear?.start
     ? new Date(`${state.academicCalendar.academicYear.start}T12:00:00`)
     : today;
@@ -55,7 +55,7 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = new Date())
   return lessons[position + offset] || null;
 };
 
-export function lessonsForDate(state, date, asOf = new Date()) {
+export function lessonsForDate(state, date, asOf = getAppNow()) {
   const dateKey = isoDate(date);
   const historical = state.lessons.filter(
     (x) => x.date === dateKey && !isPhantomLessonOutsideAcademicYear(state, x),
@@ -72,7 +72,7 @@ export function lessonsForDate(state, date, asOf = new Date()) {
       isAcademicDateExcluded(state.academicCalendar, dateKey))
   )
     return storedOnly();
-  if (dateKey < isoDate(asOf)) return storedOnly();
+  if (dateKey < getAppTodayISO(asOf)) return storedOnly();
   const day = weekday(date);
   const generated = weeklyTimetableForDate(state, dateKey)
     .filter((x) => x.day === day)

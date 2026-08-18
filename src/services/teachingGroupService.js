@@ -1,5 +1,6 @@
 import { DEFAULT_GRADE_COLORS,PASTEL_PALETTE } from '../data/pastelPalette';
 import { resolveBellSlot } from './bellSchedule';
+import { getAppTodayISO } from '../utils/appTime';
 
 const DATE_PATTERN=/^\d{4}-\d{2}-\d{2}$/;
 const validColor=id=>PASTEL_PALETTE.some(color=>color.id===id);
@@ -36,7 +37,7 @@ export function findScheduleConflicts(state,group,weeklySlots){
  return conflicts;
 }
 
-export function saveTeachingGroup(state,group,weeklySlots=[],effectiveFrom=new Date().toISOString().slice(0,10)){
+export function saveTeachingGroup(state,group,weeklySlots=[],effectiveFrom=getAppTodayISO()){
  const validation=validateTeachingGroup(group,state); if(!validation.valid) throw new Error(validation.errors.join(' '));
  const conflicts=findScheduleConflicts(state,validation.teachingGroup,weeklySlots); if(conflicts.length) return {saved:false,conflicts,state};
  const teachingGroups=[...state.teachingGroups.filter(item=>item.id!==validation.teachingGroup.id),validation.teachingGroup];

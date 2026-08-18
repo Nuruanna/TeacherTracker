@@ -1,4 +1,3 @@
-export const DEMO_DATE = new Date();
 export const pad = n => String(n).padStart(2, '0');
 export const isoDate = date => `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
 export const dateLong = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(date);

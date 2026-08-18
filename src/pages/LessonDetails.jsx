@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LessonDetailIcon, StatusIcon } from "../components/Icons";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 import OrangeNavArrow from "../components/OrangeNavArrow";
 import { teachingGroupColorStyle } from "../data/pastelPalette";
 import {
@@ -27,6 +28,12 @@ import {
   sameDayLessonNavigation,
   saveLessonFields,
 } from "../services/lessonDetailsService";
+import {
+  deleteHomeworkImage,
+  isHeicHomeworkImage,
+  MAX_HOMEWORK_IMAGES,
+  uploadHomeworkImage,
+} from "../services/homeworkImageService";
 
 const Arrow = ({ direction }) => (
   <span aria-hidden="true">{direction === "left" ? "←" : "→"}</span>
@@ -53,12 +60,17 @@ const Modal = ({ title, children, onClose }) => (
 );
 
 export default function LessonDetails({ state, update }) {
+  const requestConfirmation = useConfirmDialog();
   const { id } = useParams();
   const navigate = useNavigate();
   const lesson = findLesson(state, id);
   const [draft, setDraft] = useState(null);
   const [saveStatus, setSaveStatus] = useState("saved");
   const [panel, setPanel] = useState(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
+  const imageInput = useRef(null);
   const first = useRef(true);
   useEffect(() => {
     if (!lesson) return;
@@ -72,7 +84,7 @@ export default function LessonDetails({ state, update }) {
       homeworkMaterials: lesson.homeworkMaterials || [],
     });
     setSaveStatus("saved");
-  }, [id]);
+  }, [id, lesson?.updatedAt]);
   useEffect(() => {
     const enabled = Boolean(lesson?.carriedIn);
     document.documentElement.classList.toggle("lesson-details-scroll", enabled);
@@ -82,6 +94,12 @@ export default function LessonDetails({ state, update }) {
       document.body.classList.remove("lesson-details-scroll");
     };
   }, [lesson?.carriedIn]);
+  useEffect(() => {
+    if (!previewImage) return undefined;
+    const close = event => event.key === "Escape" && setPreviewImage(null);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [previewImage]);
   useEffect(() => {
     if (!draft || !lesson || first.current) {
       first.current = false;
@@ -103,6 +121,50 @@ export default function LessonDetails({ state, update }) {
         next.carryToNextLesson = false;
       return next;
     });
+  const addImages = async files => {
+    const selected = [...files];
+    const existing = (draft?.homeworkMaterials || []).filter(item => item.kind === "image").length;
+    if (!selected.length) return;
+    if (selected.some(isHeicHomeworkImage)) {
+      setImageError("HEIC/HEIF images are not supported. Please use JPEG, PNG or WebP.");
+      return;
+    }
+    if (existing + selected.length > MAX_HOMEWORK_IMAGES) {
+      setImageError(`You can attach up to ${MAX_HOMEWORK_IMAGES} homework images per lesson.`);
+      return;
+    }
+    setImageBusy(true);
+    setImageError("");
+    const uploaded = [];
+    for (const file of selected) {
+      try { uploaded.push(await uploadHomeworkImage(file, lesson)); }
+      catch (error) {
+        console.error('[homework images] Upload failed.', { message: error?.message || String(error), code: error?.code, status: error?.status });
+        setImageError("One or more images could not be uploaded. You can try again.");
+      }
+    }
+    if (uploaded.length) setDraft(current => ({ ...current, homeworkMaterials: [...current.homeworkMaterials, ...uploaded] }));
+    setImageBusy(false);
+    if (imageInput.current) imageInput.current.value = "";
+  };
+  const removeImage = async material => {
+    if (!await requestConfirmation({
+      title: "Remove homework image?",
+      message: "This image will be permanently removed from this homework.",
+      confirmLabel: "Remove",
+      cancelLabel: "Keep image",
+      destructive: true,
+    })) return;
+    setImageError("");
+    try {
+      await deleteHomeworkImage(material);
+      setDraft(current => ({ ...current, homeworkMaterials: current.homeworkMaterials.filter(item => item.id !== material.id) }));
+      if (previewImage?.id === material.id) setPreviewImage(null);
+    } catch (error) {
+      console.error('[homework images] Delete failed.', { message: error?.message || String(error), code: error?.code, status: error?.status });
+      setImageError("The image could not be removed. Please try again.");
+    }
+  };
   const group = state.teachingGroups.find(
     (item) => item.id === lesson?.teachingGroupId,
   );
@@ -119,22 +181,27 @@ export default function LessonDetails({ state, update }) {
       </section>
     );
   const goToLesson = (target) => target && navigate(`/lesson/${target.id}`);
-  const doCancel = () => {
+  const doCancel = async () => {
     const zero = capacity?.remainingReserve === 0;
     const remaining = Math.max(0, (capacity?.remainingReserve || 0) - 1);
-    if (
-      window.confirm(
-        zero
-          ? "No reserve capacity left. Cancelling may push planned content beyond the academic year. Continue?"
-          : `Cancel this lesson?\n1 reserve lesson will be used.\n${remaining} reserve lessons will remain.`,
-      )
-    )
+    if (await requestConfirmation({
+      title: "Cancel this lesson?",
+      message: zero
+        ? "No reserve capacity left. Cancelling may push planned content beyond the academic year."
+        : `1 reserve lesson will be used.\n${remaining} reserve lessons will remain.`,
+      confirmLabel: "Cancel lesson",
+      cancelLabel: "Keep lesson",
+      destructive: true,
+    }))
       update((current) => cancelLesson(current, id, { confirmed: zero }));
   };
-  const doRestore = () => {
-    if (
-      window.confirm("Restore this lesson and recalculate future assignments?")
-    )
+  const doRestore = async () => {
+    if (await requestConfirmation({
+      title: "Restore this lesson?",
+      message: "Future assignments will be recalculated.",
+      confirmLabel: "Restore lesson",
+      cancelLabel: "Keep cancelled",
+    }))
       update((current) => restoreLesson(current, id));
   };
   return (
@@ -325,7 +392,7 @@ export default function LessonDetails({ state, update }) {
             </button>
           </div>
           <div className="homework-materials">
-            {draft?.homeworkMaterials.map((material, index) => (
+            {draft?.homeworkMaterials.map((material, index) => material.kind === "image" ? null : (
               <div className="material-row" key={material.id}>
                 <input
                   aria-label="Link label"
@@ -387,6 +454,25 @@ export default function LessonDetails({ state, update }) {
               </div>
             ))}
           </div>
+          <div className="homework-images-head">
+            <h2>
+              <LessonDetailIcon type="image" />
+              Homework images
+            </h2>
+            <button onClick={() => imageInput.current?.click()} disabled={imageBusy || (draft?.homeworkMaterials.filter(item => item.kind === "image").length || 0) >= MAX_HOMEWORK_IMAGES}>
+              {imageBusy ? "Uploading…" : "+ Add image"}
+            </button>
+            <input ref={imageInput} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={event => addImages(event.target.files)} />
+          </div>
+          {imageError && <p className="homework-image-error" role="alert">{imageError}</p>}
+          <div className="homework-image-grid">
+            {draft?.homeworkMaterials.filter(item => item.kind === "image").map(material => (
+              <figure className="homework-image" key={material.id}>
+                <button className="homework-image-preview" onClick={() => setPreviewImage(material)} aria-label={`Preview ${material.originalName || "homework image"}`}><img src={material.publicUrl} alt={material.originalName || "Homework attachment"} /></button>
+                <button className="homework-image-remove" onClick={() => removeImage(material)} aria-label="Remove homework image">×</button>
+              </figure>
+            ))}
+          </div>
           <footer className="lesson-work-footer">
             <p className={`autosave ${saveStatus}`}>
               {saveStatus === "saving" ? "Saving…" : "✓ Saved"}
@@ -413,6 +499,7 @@ export default function LessonDetails({ state, update }) {
           </footer>
         </article>
       </section>
+      {previewImage && <div className="homework-lightbox" role="presentation" onMouseDown={event => event.target === event.currentTarget && setPreviewImage(null)}><section role="dialog" aria-modal="true" aria-label="Homework image preview"><button onClick={() => setPreviewImage(null)} aria-label="Close preview">×</button><img src={previewImage.publicUrl} alt={previewImage.originalName || "Homework attachment"} /></section></div>}
       {panel === "change" && (
         <ChangeLessonModal
           state={state}
@@ -441,6 +528,7 @@ export default function LessonDetails({ state, update }) {
 }
 
 function ChangeLessonModal({ state, lesson, capacity, onClose, onApply }) {
+  const requestConfirmation = useConfirmDialog();
   const [custom, setCustom] = useState(false);
   const [title, setTitle] = useState("");
   const planned = useMemo(
@@ -457,24 +545,26 @@ function ChangeLessonModal({ state, lesson, capacity, onClose, onApply }) {
     lesson.contentSnapshot?.type === "custom"
       ? lesson.contentSnapshot
       : assignedItem || lesson.contentSnapshot || lesson;
-  const choose = (item) => {
-    if (
-      window.confirm(
-        `Use this lesson today?\n${item.code}${item.title ? ` — ${item.title}` : ""}\nCurrent planned lesson will return to the future queue.`,
-      )
-    )
+  const choose = async (item) => {
+    if (await requestConfirmation({
+      title: "Use this lesson today?",
+      message: `${item.code}${item.title ? ` — ${item.title}` : ""}\nCurrent planned lesson will return to the future queue.`,
+      confirmLabel: "Use lesson",
+      cancelLabel: "Keep current",
+    }))
       onApply((current) => changePlannedLesson(current, lesson.id, item));
   };
-  const makeCustom = () => {
+  const makeCustom = async () => {
     const zero = capacity?.remainingReserve === 0;
     if (!title.trim()) return;
-    if (
-      window.confirm(
-        zero
-          ? "No reserve capacity left. Adding a Custom Lesson may push planned content beyond the academic year. Continue?"
-          : `This will use 1 reserve lesson.\n${Math.max(0, capacity.remainingReserve - 1)} reserve lessons will remain.`,
-      )
-    )
+    if (await requestConfirmation({
+      title: "Create Custom Lesson?",
+      message: zero
+        ? "No reserve capacity left. Adding a Custom Lesson may push planned content beyond the academic year."
+        : `This will use 1 reserve lesson.\n${Math.max(0, capacity.remainingReserve - 1)} reserve lessons will remain.`,
+      confirmLabel: "Create lesson",
+      cancelLabel: "Go back",
+    }))
       onApply((current) =>
         createCustomLessonForEvent(
           current,
