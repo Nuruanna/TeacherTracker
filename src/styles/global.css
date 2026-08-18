@@ -155,3 +155,40 @@ body:before{content:'';position:fixed;inset:-50px;z-index:-2;background:url('../
 .month-page{height:100%;overflow-y:auto;padding:0 4px 26px}.month-page>.date-navigation{margin-bottom:18px}.month-label{margin:0;white-space:nowrap;color:#18275e;font:600 31px 'Lora',serif}.month-calendar-scroll{overflow-x:auto;padding:0 2px 8px}.month-calendar{min-width:1080px}.month-weekdays,.month-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.month-weekdays{margin-bottom:12px}.month-weekdays>div{height:39px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.7);border-radius:10px;background:linear-gradient(135deg,#9458ec,#713be0);color:#fff;font:600 16px 'Lora',serif;box-shadow:0 6px 15px rgba(105,58,171,.14)}.month-grid{align-items:stretch}.month-day-card{height:300px;min-width:0;padding:10px 11px 12px;border-radius:16px;background:#fff;cursor:pointer;transition:transform .14s,box-shadow .14s}.month-day-card:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(75,43,91,.14)}.month-day-card.current{border-color:#a875e7;box-shadow:0 0 0 2px rgba(137,76,219,.11),var(--shadow)}.month-day-card>header{height:31px;display:flex;align-items:center}.month-day-card>header span{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;color:#29265b;font:600 18px 'Lora',serif}.month-day-card.current>header span{background:#eee2ff;color:#7138c5}.month-slots{display:grid;grid-template-rows:repeat(7,1fr);gap:4px;height:244px}.month-slot{min-width:0;height:31px;display:grid;grid-template-columns:20px 34px minmax(0,1fr);align-items:center;gap:5px;padding:2px 6px;border-radius:7px;text-align:left}.month-slot b{color:#687184;font-size:11px}.month-slot.empty{border:1px solid #d9dce2;background:rgba(255,255,255,.3)}.month-slot.empty span{grid-column:2/4}.month-slot.occupied{border:1px solid var(--grade-border);background:var(--grade-bg);color:var(--grade-text);cursor:pointer}.month-slot.occupied:hover{filter:brightness(.985);box-shadow:0 3px 8px rgba(70,45,86,.08)}.month-slot strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px 'Nunito',sans-serif}.month-slot>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#323955;font-size:10px;font-weight:600}.month-slot.changed{opacity:.68}.month-slot.changed>span{text-decoration:line-through}.month-placeholder{height:300px;pointer-events:none}
 @media(max-width:1200px){.month-page>.date-navigation{min-width:900px}.month-calendar{min-width:1000px}.month-day-card,.month-placeholder{height:292px}.month-slots{height:236px}}
 @media(max-width:780px){.month-page{height:auto;overflow:visible}.month-page>.date-navigation{min-width:700px}.month-calendar{min-width:920px}.month-weekdays,.month-grid{gap:9px}.month-day-card{padding:9px}.month-slot{grid-template-columns:18px 31px minmax(0,1fr);padding:2px 4px}.month-slot strong{font-size:11px}}
+
+/* Final responsive polish: reliable SVG navigation and native touch scrolling. */
+.orange-nav-arrow{display:block;width:24px;height:24px;overflow:visible;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;transform:translateY(-1px)}
+.round-arrow{overflow:visible}.round-arrow>.orange-nav-arrow{width:27px;height:27px}
+.lesson-neighbour i .orange-nav-arrow{width:24px;height:24px}
+.week-scroll,.month-calendar-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scroll-behavior:smooth;touch-action:pan-x pan-y}
+.week-scroll :is(button,.week-empty-slot,.week-heading,.week-time),.month-calendar-scroll :is(button,.month-day-card,.month-slot,.month-weekdays>div){touch-action:pan-x pan-y}
+
+@media(max-width:780px){
+ .header{min-height:112px;padding:7px 10px;row-gap:4px}.brand{width:168px}.brand img{height:49px}.header nav a{min-height:40px}.settings{min-width:42px;min-height:42px}
+
+ .day-page{overflow-x:hidden}
+ .day-main .date-navigation{order:1}.day-lessons{order:2}.day-sidebar .mini-calendar{order:3}.status-legend{order:4}
+
+ .week-page,.month-page{width:100%;min-width:0;overflow-x:hidden}
+ .week-page>.date-navigation,.month-page>.date-navigation{width:100%;min-width:0;min-height:126px;grid-template-columns:48px minmax(0,1fr) 48px;grid-template-rows:54px 46px;gap:4px 8px;padding:9px 12px;border-radius:9999px}
+ .week-page>.date-navigation .date-side.previous,.month-page>.date-navigation .date-side.previous{grid-column:1;grid-row:1;justify-content:flex-start}
+ .week-page>.date-navigation .date-side.next,.month-page>.date-navigation .date-side.next{grid-column:3;grid-row:1;justify-content:flex-end}
+ .week-page>.date-navigation .date-navigation-center,.month-page>.date-navigation .date-navigation-center{display:contents}
+ .week-page>.date-navigation .week-range,.month-page>.date-navigation .month-label{grid-column:2;grid-row:1;align-self:center;justify-self:center;min-width:0;font-size:19px;text-align:center}
+ .week-page>.date-navigation .grade-filter,.month-page>.date-navigation .grade-filter{grid-column:1/-1;grid-row:2;justify-self:center;width:min(270px,100%)}
+ .week-page>.date-navigation .grade-filter select,.month-page>.date-navigation .grade-filter select{width:100%;height:42px}
+ .week-page>.date-navigation .round-arrow,.month-page>.date-navigation .round-arrow{width:44px;height:44px;min-width:44px;min-height:44px}
+
+ .week-page{display:flex;flex-direction:column;gap:14px}.week-card{width:100%;min-width:0;padding:12px 8px;overflow:hidden}.week-scroll{width:100%;max-width:100%;height:auto;overflow-x:auto;overflow-y:hidden}.week-grid{min-width:1000px;height:auto;grid-template-columns:150px repeat(5,170px);grid-template-rows:58px repeat(7,54px)}
+ .week-heading.time-heading,.week-time{position:sticky;left:0;z-index:2;background:#fffaf8;box-shadow:5px 0 8px rgba(76,52,92,.05)}.week-heading.time-heading{z-index:3}.week-time{background:#fff}
+
+ .month-page>.date-navigation{margin-bottom:14px}.month-calendar-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden}.month-calendar{min-width:920px}
+
+ .lesson-details-page{width:100%;min-width:0;overflow-x:hidden}.lesson-nav-pill,.lesson-info-grid,.lesson-work-grid{max-width:100%}.lesson-neighbour i{overflow:visible;flex:0 0 42px}
+}
+
+@media(max-width:390px){
+ .week-page>.date-navigation,.month-page>.date-navigation{padding-left:9px;padding-right:9px;grid-template-columns:45px minmax(0,1fr) 45px}
+ .week-page>.date-navigation .week-range,.month-page>.date-navigation .month-label{font-size:17px}
+ .week-page>.date-navigation .grade-filter,.month-page>.date-navigation .grade-filter{width:min(245px,100%)}
+}

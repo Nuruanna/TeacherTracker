@@ -1,7 +1,10 @@
-import { describe,expect,it } from 'vitest';
+import { afterAll,beforeAll,describe,expect,it,vi } from 'vitest';
 import { seedState } from '../data/seed';
 import { dayLessonSlots,filterLessonsByGrade,lessonsForDate,shortCourseCode } from './lessonViewService';
 import { lessonRowStatusTypes,weekStatusType } from '../utils/lessons';
+
+beforeAll(()=>{vi.useFakeTimers();vi.setSystemTime(new Date(2026,7,17,10));});
+afterAll(()=>vi.useRealTimers());
 
 describe('Stage 2 lesson views',()=>{
  it('builds Day rows from timetable and Bell Schedule',()=>{

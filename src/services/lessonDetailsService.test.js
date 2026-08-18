@@ -1,8 +1,11 @@
-import { describe,expect,it } from 'vitest';
+import { afterAll,beforeAll,describe,expect,it,vi } from 'vitest';
 import { seedState } from '../data/seed';
 import { lessonRowStatusTypes } from '../utils/lessons';
 import { applyCarryForward,availablePlannedLessons,cancelLesson,changePlannedLesson,createCustomLessonForEvent,findLesson,rescheduleConflict,rescheduleLesson,restoreLesson,saveLessonFields } from './lessonDetailsService';
 import { calculateTeachingGroupCapacity } from './courseCapacityService';
+
+beforeAll(()=>{vi.useFakeTimers();vi.setSystemTime(new Date(2026,7,17,10));});
+afterAll(()=>vi.useRealTimers());
 
 const fresh=()=>{const state=JSON.parse(JSON.stringify(seedState));state.lessons=[
  {id:'lesson-1',date:'2026-08-12',number:4,start:'11:10',end:'11:50',teachingGroupId:'grade2-a',courseMapItemId:'g2-001',code:'Reading Lesson 1',contentSnapshot:{code:'Reading Lesson 1',title:'Letters E, T, N, P',type:'lesson'},manualStatus:null,needsAttention:false,carriedIn:'',homework:'',unfinished:'',carryForward:false},
