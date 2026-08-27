@@ -23,6 +23,19 @@ describe('cloud-primary persistence', () => {
     expect(saveCache).toHaveBeenCalledWith(result.state);
   });
 
+  it('marks a migrated schema 10 cloud row for an automatic authoritative-map save', async () => {
+    const cloud = copy(seedState);
+    cloud.schemaVersion = 10;
+    cloud.courseMaps['grade-8'].plannedItemCount = 96;
+    const result = await loadCloudPrimaryState({
+      fetchCloud: async () => ({ schema_version: 10, state: cloud, updated_at: '2026-08-25T10:00:00Z' }),
+      loadCache: () => null,
+      saveCache: vi.fn(),
+    });
+    expect(result).toMatchObject({ cloudWritable: true, requiresCloudSave: true });
+    expect(result.state).toMatchObject({ schemaVersion: 11, courseMaps: { 'grade-8': { plannedItemCount: 95, reserveCount: 7 } } });
+  });
+
   it('uses the same row migration for a serialized Realtime JSONB payload', () => {
     const remote = copy(seedState);
     remote.academicCalendar.academicYear.end = '2027-05-31';

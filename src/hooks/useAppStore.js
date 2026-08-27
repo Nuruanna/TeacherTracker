@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { loadCachedState, saveState } from '../utils/storage';
 import { getCloudState, subscribeToCloudState, updateCloudState } from '../services/cloudStateService';
 import { createDebouncedCloudSaver, createRealtimeStateCoordinator, loadCloudPrimaryState, migrateCloudRow } from '../services/cloudPersistenceService';
+import { classSiteProgressSignature, syncClassSiteProgress } from '../services/classSitesService';
 export function useAppStore(session) {
   const userId = session?.user?.id;
   const accessToken = session?.access_token;
@@ -14,11 +15,22 @@ export function useAppStore(session) {
   const [lastRemoteUpdatedAt,setLastRemoteUpdatedAt] = useState(null);
   const saverRef = useRef(null);
   const lastCloudUpdateRef = useRef(null);
+  const progressSignatureRef = useRef(null);
+  const queueProgressSync = next => {
+    const signature = classSiteProgressSignature(next);
+    if (signature === progressSignatureRef.current) return;
+    progressSignatureRef.current = signature;
+    syncClassSiteProgress(next).catch(error => {
+      if (progressSignatureRef.current === signature) progressSignatureRef.current = null;
+      console.error('[class site progress] Sync failed.', { message: error?.message || String(error), code: error?.code });
+    });
+  };
   const applyAppState = (nextOrUpdater, { suppressCloudWrite = false } = {}) => {
     setState(current => {
       const next = typeof nextOrUpdater === 'function' ? nextOrUpdater(current) : nextOrUpdater;
       saveState(next);
       if (!suppressCloudWrite) saverRef.current?.queue(next);
+      queueProgressSync(next);
       return next;
     });
   };
@@ -37,6 +49,7 @@ export function useAppStore(session) {
       .then(result => {
         if (!active) return;
         setState(result.state);
+        queueProgressSync(result.state);
         setCloudStatus(result.status);
         setCloudError(result.error || null);
         setCloudUpdatedAt(result.updatedAt || null);
@@ -52,6 +65,7 @@ export function useAppStore(session) {
             },
             onStatus(status,error) { if (active) { setCloudStatus(status === 'saved' && subscribedOnce ? 'live' : status); setCloudError(error || null); } },
           });
+          if (result.requiresCloudSave) saverRef.current.queue(result.state);
           const coordinator = createRealtimeStateCoordinator({
             saver: saverRef.current,
             fetchCloud: getCloudState,

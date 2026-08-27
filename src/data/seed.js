@@ -34,7 +34,7 @@ export const defaultWeeklyTimetable=Object.entries(timetableByGroup).flatMap(([t
 
 const courseState=group=>({teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]});
 export const seedState={
- schemaVersion:10,
+ schemaVersion:11,
  teachingGroups,
  bellSchedules:[defaultBellSchedule],
  weeklyTimetable:defaultWeeklyTimetable,

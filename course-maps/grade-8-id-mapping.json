@@ -1,0 +1,23 @@
+{
+  "strategy": "Preserve the same stable ID for every authoritative lesson with a clear semantic predecessor.",
+  "reorderedSameIdentity": [
+    "g8-019", "g8-020", "g8-021", "g8-023", "g8-024",
+    "g8-045", "g8-046", "g8-047", "g8-048",
+    "g8-070", "g8-071", "g8-072",
+    "g8-094", "g8-095", "g8-096"
+  ],
+  "correctedBySequenceAndTheme": {
+    "g8-017": "Unit 1 Step 9a — Winter Olympics and Unusual Sports",
+    "g8-018": "Unit 1 Step 9b — Do We Need Such Sports? + Topic 2",
+    "g8-043": "Unit 2 Step 10a — Topic Presentation",
+    "g8-046": "Unit 2 Step 10c — Test Yourself"
+  },
+  "obsolete": {
+    "g8-022": {
+      "oldLesson": "Unit 1 Final Lesson 2 — Revision",
+      "newType": "reserve",
+      "currentPositionFallback": "g8-024",
+      "reason": "No distinct Revision lesson exists in the authoritative sequence; Correction / Error Analysis is the nearest valid continuation."
+    }
+  }
+}

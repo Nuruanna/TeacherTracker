@@ -13,6 +13,7 @@ import {
   replaceCourseMap,
   setCourseMapItemType,
 } from "../services/courseMapService";
+import { courseMapItemReferences, validateSafeCourseMapImport } from "../services/courseMapSafetyService";
 import {
   applyAcademicCalendar,
   applyWeeklyTimetable,
@@ -34,6 +35,7 @@ import {
 import { useAuth } from "../auth/AuthProvider";
 import { formatInAppTimezone, getAppTodayISO } from "../utils/appTime";
 import { useConfirmDialog } from "../components/ConfirmDialog";
+import { deactivateClassSiteForTeachingGroup, syncClassSitesFoundation } from "../services/classSitesService";
 
 const tabs = [
   "Academic Calendar",
@@ -607,6 +609,7 @@ function TimetableEditor({ state, update, dirty, isDirty }) {
 function GroupsTab({ state, update, dirty }) {
   const requestConfirmation = useConfirmDialog();
   const [editing, setEditing] = useState(null);
+  const [message, setMessage] = useState("");
   return (
     <div className="settings-stack">
       <div className="section-heading">
@@ -654,14 +657,15 @@ function GroupsTab({ state, update, dirty }) {
                       confirmLabel: "Archive class",
                       cancelLabel: "Keep class",
                       destructive: true,
-                    }))
-                      update((current) =>
-                        archiveTeachingGroup(
-                          current,
-                          group.id,
-                          getAppTodayISO(),
-                        ),
-                      );
+                    })) {
+                      try {
+                        if (group.type === "class") await deactivateClassSiteForTeachingGroup(group.id);
+                        update((current) => archiveTeachingGroup(current, group.id, getAppTodayISO()));
+                        setMessage(`${group.displayName} archived. Its Class Site remains preserved and inactive.`);
+                      } catch (error) {
+                        setMessage(error.message || "The class could not be archived safely.");
+                      }
+                    }
                   }}
                 >
                   Archive
@@ -670,6 +674,7 @@ function GroupsTab({ state, update, dirty }) {
             );
           })}
       </div>
+      <Notice message={message} />
       {editing && (
         <GroupModal
           state={state}
@@ -720,7 +725,8 @@ function GroupModal({ state, group, update, close, dirty }) {
   const conflicts = findScheduleConflicts(state, draft, slots);
   const save = async () => {
     try {
-      const result = saveTeachingGroup(state, draft, slots);
+      const isNew = !state.teachingGroups.some((item) => item.id === group.id);
+      const result = saveTeachingGroup(state, draft, slots, isNew ? draft.activeFrom : getAppTodayISO());
       if (!result.saved) {
         setMessage(result.conflicts.map((x) => x.message).join(" "));
         return;
@@ -733,6 +739,7 @@ function GroupModal({ state, group, update, close, dirty }) {
       }))
         return;
       update(() => result.state);
+      if (draft.type === "class" && draft.courseMapId) await syncClassSitesFoundation(result.state);
       close();
     } catch (error) {
       setMessage(error.message);
@@ -996,7 +1003,12 @@ function MapsTab({ state, update, dirty, isDirty }) {
           onChange={(e) =>
             e.target.files[0] &&
             readFile(e.target.files[0], (text) =>
-              setPreview({ text, result: importCourseMap(text, id) }),
+              setPreview({ text, result: (() => {
+                const result = importCourseMap(text, id);
+                if (!result.valid) return result;
+                const safety = validateSafeCourseMapImport(state, id, result.courseMap);
+                return safety.safe ? result : { ...result, valid: false, errors: safety.errors };
+              })() }),
             )
           }
         />
@@ -1048,16 +1060,22 @@ function MapsTab({ state, update, dirty, isDirty }) {
             />
             <select
               value={item.type}
-              onChange={(e) =>
-                change(
-                  setCourseMapItemType(
-                    { courseMaps: { [id]: draft } },
-                    id,
-                    item.id,
-                    e.target.value,
-                  ).courseMaps[id],
-                )
-              }
+              onChange={async (e) => {
+                const nextType = e.target.value;
+                if (item.type === "lesson" && nextType === "reserve") {
+                  try {
+                    const references = await courseMapItemReferences(state, id, item.id);
+                    if (references.length) {
+                      setMessage("This Course Map item is already in use and cannot be changed to Reserve safely.");
+                      return;
+                    }
+                  } catch (error) {
+                    setMessage(error.message || "Course Map references could not be checked safely.");
+                    return;
+                  }
+                }
+                change(setCourseMapItemType({ courseMaps: { [id]: draft } }, id, item.id, nextType).courseMaps[id]);
+              }}
             >
               <option value="lesson">Planned</option>
               <option value="reserve">Reserve</option>
@@ -1094,15 +1112,18 @@ function MapsTab({ state, update, dirty, isDirty }) {
             </button>
             <button
               className="danger-link"
-              onClick={() =>
-                change(
-                  deleteCourseMapItem(
-                    { courseMaps: { [id]: draft } },
-                    id,
-                    item.id,
-                  ).courseMaps[id],
-                )
-              }
+              onClick={async () => {
+                try {
+                  const references = await courseMapItemReferences(state, id, item.id);
+                  if (references.length) {
+                    setMessage("This Course Map item is already in use and cannot be deleted safely.");
+                    return;
+                  }
+                  change(deleteCourseMapItem({ courseMaps: { [id]: draft } }, id, item.id).courseMaps[id]);
+                } catch (error) {
+                  setMessage(error.message || "Course Map references could not be checked safely.");
+                }
+              }}
             >
               ×
             </button>

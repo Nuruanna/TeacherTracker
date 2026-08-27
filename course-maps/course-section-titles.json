@@ -1,0 +1,65 @@
+{
+  "grade-2": {
+    "reading": {
+      "0": "My Letters!"
+    },
+    "starter": {
+      "0": "Hello! My Family!"
+    },
+    "module": {
+      "1": "My Home!",
+      "2": "My Birthday!",
+      "3": "My Animals!",
+      "4": "My Toys!",
+      "5": "My Holidays!"
+    }
+  },
+  "grade-3": {
+    "starter": {
+      "0": "Welcome back!"
+    },
+    "module": {
+      "1": "School days!",
+      "2": "Family moments!",
+      "3": "All the things I like!",
+      "4": "Come in and play!",
+      "5": "Furry friends!",
+      "6": "Home, sweet home!",
+      "7": "A Day off!",
+      "8": "Day by day!"
+    }
+  },
+  "grade-4": {
+    "starter": {
+      "0": "Back together!"
+    },
+    "module": {
+      "1": "Family and friends!",
+      "2": "A working day!",
+      "3": "Tasty treats!",
+      "4": "At the zoo!",
+      "5": "Where were you yesterday?",
+      "6": "Tell the tale!",
+      "7": "Days to remember!",
+      "8": "Places to go!"
+    }
+  },
+  "grade-5": {
+    "unit": {
+      "1": "Holidays Are Over",
+      "2": "Family History",
+      "3": "Healthy Ways",
+      "4": "After School",
+      "5": "From Place to Place",
+      "6": "About Russia"
+    }
+  },
+  "grade-8": {
+    "unit": {
+      "1": "Sport and Outdoor Activities",
+      "2": "Performing Arts: Theatre",
+      "3": "Performing Arts: Cinema",
+      "4": "The Whole World Knows Them"
+    }
+  }
+}

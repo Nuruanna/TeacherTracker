@@ -34,6 +34,7 @@ import {
   MAX_HOMEWORK_IMAGES,
   uploadHomeworkImage,
 } from "../services/homeworkImageService";
+import LessonHomeworkPublish from "../components/LessonHomeworkPublish";
 
 const Arrow = ({ direction }) => (
   <span aria-hidden="true">{direction === "left" ? "←" : "→"}</span>
@@ -70,6 +71,7 @@ export default function LessonDetails({ state, update }) {
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [sharedHomeworkTemplate, setSharedHomeworkTemplate] = useState(null);
   const imageInput = useRef(null);
   const first = useRef(true);
   useEffect(() => {
@@ -85,15 +87,6 @@ export default function LessonDetails({ state, update }) {
     });
     setSaveStatus("saved");
   }, [id, lesson?.updatedAt]);
-  useEffect(() => {
-    const enabled = Boolean(lesson?.carriedIn);
-    document.documentElement.classList.toggle("lesson-details-scroll", enabled);
-    document.body.classList.toggle("lesson-details-scroll", enabled);
-    return () => {
-      document.documentElement.classList.remove("lesson-details-scroll");
-      document.body.classList.remove("lesson-details-scroll");
-    };
-  }, [lesson?.carriedIn]);
   useEffect(() => {
     if (!previewImage) return undefined;
     const close = event => event.key === "Escape" && setPreviewImage(null);
@@ -359,6 +352,8 @@ export default function LessonDetails({ state, update }) {
           </label>
         </article>
         <article className="lesson-work-card lesson-homework-card">
+          <div className="lesson-homework-container">
+          {false && !sharedHomeworkTemplate && <>
           <label>
             <span className="work-label homework-label">
               <LessonDetailIcon type="homework" />
@@ -370,7 +365,7 @@ export default function LessonDetails({ state, update }) {
               placeholder="Homework for this lesson"
             />
           </label>
-          <div className="materials-head">
+          {false && <><div className="materials-head">
             <h2>
               <LessonDetailIcon type="link" />
               Homework links
@@ -454,6 +449,8 @@ export default function LessonDetails({ state, update }) {
               </div>
             ))}
           </div>
+          </>}
+          {draft?.homeworkMaterials.some(material => material.kind !== "image" && material.url) && <div className="legacy-homework-links"><small>Existing links</small>{draft.homeworkMaterials.filter(material => material.kind !== "image" && material.url).map(material => <a href={material.url} target="_blank" rel="noreferrer" key={material.id}>{material.title || material.type || material.url}</a>)}</div>}
           <div className="homework-images-head">
             <h2>
               <LessonDetailIcon type="image" />
@@ -473,7 +470,11 @@ export default function LessonDetails({ state, update }) {
               </figure>
             ))}
           </div>
-          <footer className="lesson-work-footer">
+          </>}
+          <LessonHomeworkPublish state={state} lesson={lesson} draft={draft} onTemplate={setSharedHomeworkTemplate} onDeleted={() => { setSharedHomeworkTemplate(null); setDraft(current => ({ ...current, homework: '', homeworkMaterials: [] })); }}/>
+          </div>
+        </article>
+        <footer className="lesson-work-footer">
             <p className={`autosave ${saveStatus}`}>
               {saveStatus === "saving" ? "Saving…" : "✓ Saved"}
             </p>
@@ -496,8 +497,7 @@ export default function LessonDetails({ state, update }) {
                 Reschedule
               </button>
             </div>
-          </footer>
-        </article>
+        </footer>
       </section>
       {previewImage && <div className="homework-lightbox" role="presentation" onMouseDown={event => event.target === event.currentTarget && setPreviewImage(null)}><section role="dialog" aria-modal="true" aria-label="Homework image preview"><button onClick={() => setPreviewImage(null)} aria-label="Close preview">×</button><img src={previewImage.publicUrl} alt={previewImage.originalName || "Homework attachment"} /></section></div>}
       {panel === "change" && (

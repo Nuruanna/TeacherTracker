@@ -33,8 +33,9 @@ describe('editable annual Course Maps',()=>{
  it('validates import and replaces only current/future map state',()=>{
   const state=copy(seedState); const historyBefore=JSON.stringify(state.lessons);
   const replacement=copy(state.courseMaps['grade-8']);
+  const reserveBefore=courseMapPreview(replacement).reserve;
   replacement.items.push({id:'new-reserve',order:replacement.items.length+1,type:'reserve',code:'Reserve',title:null});
-  const preview=courseMapPreview(replacement); expect(preview.reserve).toBe(7);
+  const preview=courseMapPreview(replacement); expect(preview.reserve).toBe(reserveBefore+1);
   expect(importCourseMap(JSON.stringify(replacement),'grade-8').valid).toBe(true);
   const next=replaceCourseMap(state,'grade-8',replacement);
   expect(JSON.stringify(next.lessons)).toBe(historyBefore);

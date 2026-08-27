@@ -22,13 +22,39 @@ function preserveAcademicCalendar(migrated, saved) {
   return { ...migrated, academicCalendar: calendar };
 }
 
+export function migrateAuthoritativeGrade8Map(saved) {
+  const oldMap = saved.courseMaps?.['grade-8'];
+  if (!oldMap) return { ...saved, courseMaps: { ...(saved.courseMaps || {}), 'grade-8': clone(seedState.courseMaps['grade-8']) } };
+  const oldPlanned = oldMap.items?.filter(item => item.type === 'lesson') || [];
+  const newMap = clone(seedState.courseMaps['grade-8']);
+  const newPlanned = newMap.items.filter(item => item.type === 'lesson');
+  const obsoleteCurrentItemReplacement = { 'g8-022': 'g8-024' };
+  const teachingGroupCourseStates = Object.fromEntries(Object.entries(saved.teachingGroupCourseStates || {}).map(([groupId, courseState]) => {
+    if (courseState.courseMapId !== 'grade-8') return [groupId, courseState];
+    const currentId = oldPlanned[Math.max(0, courseState.currentPosition || 0)]?.id;
+    const nextPosition = newPlanned.findIndex(item => item.id === (obsoleteCurrentItemReplacement[currentId] || currentId));
+    return [groupId, {
+      ...courseState,
+      currentPosition: nextPosition >= 0 ? nextPosition : Math.min(Math.max(0, courseState.currentPosition || 0), newPlanned.length - 1),
+      lessonAssignments: {},
+      recalculationRequired: true,
+    }];
+  }));
+  return {
+    ...saved,
+    courseMaps: { ...(saved.courseMaps || {}), 'grade-8': newMap },
+    teachingGroupCourseStates,
+  };
+}
+
 export function migrateState(saved) {
   if (!saved || typeof saved !== 'object') return clone(seedState);
   let migrated;
   if (Number(saved.schemaVersion) === seedState.schemaVersion) migrated = saved;
-  else if (Number(saved.schemaVersion) === 9) migrated = removePhantomLessonsOutsideAcademicYear({...saved,schemaVersion:seedState.schemaVersion});
+  else if (Number(saved.schemaVersion) === 10) migrated = { ...migrateAuthoritativeGrade8Map(saved), schemaVersion: seedState.schemaVersion };
+  else if (Number(saved.schemaVersion) === 9) migrated = migrateAuthoritativeGrade8Map(removePhantomLessonsOutsideAcademicYear({...saved,schemaVersion:seedState.schemaVersion}));
   else if (Number(saved.schemaVersion) === 8) {
-    migrated = removePhantomLessonsOutsideAcademicYear({
+    migrated = migrateAuthoritativeGrade8Map(removePhantomLessonsOutsideAcademicYear({
       ...saved,
       schemaVersion: seedState.schemaVersion,
       academicCalendar: {
@@ -38,7 +64,7 @@ export function migrateState(saved) {
         noSchoolDays: clone(saved.academicCalendar?.noSchoolDays || []),
         excludedDates: clone(saved.academicCalendar?.excludedDates || []),
       },
-    });
+    }));
   }
   else if (Number(saved.schemaVersion)<8) {
     const academicCalendar=clone(saved.academicCalendar||seedState.academicCalendar);

@@ -40,6 +40,7 @@ export function findScheduleConflicts(state,group,weeklySlots){
 export function saveTeachingGroup(state,group,weeklySlots=[],effectiveFrom=getAppTodayISO()){
  const validation=validateTeachingGroup(group,state); if(!validation.valid) throw new Error(validation.errors.join(' '));
  const conflicts=findScheduleConflicts(state,validation.teachingGroup,weeklySlots); if(conflicts.length) return {saved:false,conflicts,state};
+ const isNew=!state.teachingGroups.some(item=>item.id===validation.teachingGroup.id);
  const teachingGroups=[...state.teachingGroups.filter(item=>item.id!==validation.teachingGroup.id),validation.teachingGroup];
  const retained=state.weeklyTimetable.filter(entry=>entry.teachingGroupId!==validation.teachingGroup.id);
  const assigned=weeklySlots.map((slot,index)=>({id:`${validation.teachingGroup.id}-${slot.day.toLowerCase()}-${slot.lessonNumber}-${index}`,day:slot.day,lessonNumber:Number(slot.lessonNumber),teachingGroupId:validation.teachingGroup.id}));
@@ -50,7 +51,11 @@ export function saveTeachingGroup(state,group,weeklySlots=[],effectiveFrom=getAp
  const weeklyTimetable=[...retained,...assigned];
  const version={id:`timetable-${effectiveFrom}`,effectiveFrom,entries:weeklyTimetable};
  const baseline=state.weeklyTimetableVersions?.length?state.weeklyTimetableVersions:[{id:`timetable-${state.academicCalendar.academicYear.start}`,effectiveFrom:state.academicCalendar.academicYear.start,entries:state.weeklyTimetable}];
- const weeklyTimetableVersions=[...baseline.filter(item=>item.effectiveFrom!==effectiveFrom),version].sort((a,b)=>a.effectiveFrom.localeCompare(b.effectiveFrom));
+ const laterVersions=baseline.filter(item=>item.effectiveFrom>effectiveFrom).map(item=>{
+  const hasGroup=item.entries.some(entry=>entry.teachingGroupId===validation.teachingGroup.id);
+  return isNew||!hasGroup?{...item,entries:[...item.entries.filter(entry=>entry.teachingGroupId!==validation.teachingGroup.id),...assigned]}:item;
+ });
+ const weeklyTimetableVersions=[...baseline.filter(item=>item.effectiveFrom<effectiveFrom),version,...laterVersions].sort((a,b)=>a.effectiveFrom.localeCompare(b.effectiveFrom));
  return {saved:true,conflicts:[],state:{...state,teachingGroups,weeklyTimetable,weeklyTimetableVersions,teachingGroupCourseStates}};
 }
 

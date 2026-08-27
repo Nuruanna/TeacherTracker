@@ -59,7 +59,7 @@ export async function loadCloudPrimaryState({ fetchCloud, loadCache, saveCache }
   try {
     const state = migrateCloudRow(row);
     saveCache(state);
-    return { state, status: 'saved', cloudWritable: true, source: 'cloud', updatedAt: row.updated_at };
+    return { state, status: 'saved', cloudWritable: true, source: 'cloud', updatedAt: row.updated_at, requiresCloudSave: Number(row.schema_version) !== Number(state.schemaVersion) };
   } catch (error) {
     const cached = loadCache();
     const state = cached || clone(seedState);

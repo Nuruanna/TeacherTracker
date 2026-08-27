@@ -19,6 +19,8 @@ const DAY_ORDER = [
 ];
 export const activeClassGroups = (state, date = getAppTodayISO()) =>
   state.teachingGroups.filter((group) => isTeachingGroupActive(group, date));
+export const overviewTeachingGroups = state =>
+  state.teachingGroups.filter(group => !group.archivedAt && group.courseMapId && state.courseMaps?.[group.courseMapId]);
 export const courseMapForGroup = (state, group) =>
   group?.courseMapId ? state.courseMaps[group.courseMapId] || null : null;
 export const plannedCourseItems = (state, group) =>
@@ -156,10 +158,12 @@ export function courseMapItemState(state, group, item, now = getAppNow()) {
 }
 
 export function classOverview(state, group, now = getAppNow()) {
+  const today = getAppTodayISO(now);
+  const scheduleDate = group.activeFrom && group.activeFrom > today ? group.activeFrom : today;
   return {
     group,
     currentItem: currentCourseItem(state, group),
-    schedule: weeklyScheduleForGroup(state, group, getAppTodayISO(now)),
+    schedule: weeklyScheduleForGroup(state, group, scheduleDate),
     nextLesson: nextLessonForGroup(state, group, now),
     capacity: group.courseMapId
       ? calculateTeachingGroupCapacity(state, group.id)
