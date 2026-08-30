@@ -13,6 +13,8 @@ import {
 import { getAppTodayISO } from '../utils/appTime';
 import { dayMonth, parseIsoDate } from '../utils/date';
 import DebouncedTemplateTextarea from './DebouncedTemplateTextarea';
+import HomeworkAudioAttachments from './HomeworkAudioAttachments';
+import { deleteSharedHomeworkAudio, updateSharedHomeworkAudioTitle, uploadSharedHomeworkAudio } from '../services/classSitesHomeworkService';
 
 const dateLabel = value => value ? dayMonth(parseIsoDate(value)) : 'Needs selection';
 const assignmentFor = (record, groupId) => record?.assignments?.find(item => item.site?.source_teaching_group_id === groupId) || null;
@@ -37,6 +39,7 @@ export default function HomeworkAdmin({ state, update }) {
   const [bodyContext, setBodyContext] = useState('');
   const [editingTemplate, setEditingTemplate] = useState(false);
   const [pendingImage, setPendingImage] = useState(null);
+  const [pendingAudioCount, setPendingAudioCount] = useState(0);
   const [dateChanges, setDateChanges] = useState({});
   const [busy, setBusy] = useState('');
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,8 @@ export default function HomeworkAdmin({ state, update }) {
   const selected = selectedCourse?.sections.flatMap(section => section.rows).find(row => row.item.id === selectedKey?.itemId);
   const itemContext = selected ? `${selectedCourse.courseMapId}:${selected.item.id}` : '';
   const editorContext = itemContext;
+  const editorContextRef = useRef(editorContext);
+  editorContextRef.current = editorContext;
   const loadedBody = selected ? (selected.record ? selected.record.body || '' : selected.preparedSource?.homework || '') : '';
   const activeBody = bodyContext === editorContext ? body : loadedBody;
   const closeModal = async () => {
@@ -161,6 +166,33 @@ export default function HomeworkAdmin({ state, update }) {
     } catch (uploadError) { setError(uploadError.message || 'Homework image could not be uploaded.'); }
     finally { setPendingImage(null); setBusy(''); }
   };
+  const uploadAudio = async files => {
+    const requestedContext = editorContext;
+    setPendingAudioCount(files.length); setBusy('audio'); setError('');
+    try {
+      let templateId = selected.record?.id;
+      if (!templateId) {
+        templateId = await saveCentralHomeworkTemplate(selectedCourse.courseMapId, selected.item, activeBody, null, 'draft');
+        await reload();
+      }
+      for (const file of files) await uploadSharedHomeworkAudio(templateId, file);
+      if (requestedContext === editorContextRef.current) await reload();
+    } catch (uploadError) { setError(uploadError.message || 'Homework audio could not be uploaded.'); }
+    finally { setPendingAudioCount(0); setBusy(''); }
+  };
+  const renameAudio = async (asset, title) => {
+    try {
+      const saved = await updateSharedHomeworkAudioTitle(asset.id, title);
+      setData(current => ({ ...current, records: current.records.map(record => record.id === asset.homework_template_id ? { ...record, assets: record.assets.map(item => item.id === asset.id ? { ...item, ...saved } : item) } : record) }));
+    } catch (saveError) { setError(saveError.message || 'Homework audio title could not be saved.'); }
+  };
+  const removeAudio = async asset => {
+    if (!await confirm({ title: 'Remove Homework audio?', message: 'This audio will be removed from this Homework for every published class.', confirmLabel: 'Remove', cancelLabel: 'Keep audio', destructive: true })) return;
+    try {
+      await deleteSharedHomeworkAudio(asset);
+      setData(current => ({ ...current, records: current.records.map(record => record.id === asset.homework_template_id ? { ...record, assets: record.assets.filter(item => item.id !== asset.id) } : record) }));
+    } catch (deleteError) { setError(deleteError.message || 'Homework audio could not be removed.'); }
+  };
 
   return <section className="classes-section-panel homework-map-panel card">
     <header><h2>Homework</h2><p>Manage shared Course Map homework and class assignments.</p></header>
@@ -180,6 +212,7 @@ export default function HomeworkAdmin({ state, update }) {
         <DebouncedTemplateTextarea ref={textEditorRef} key={editorContext} templateKey={editorContext} initialBody={activeBody} disabled={!editingTemplate} placeholder="Enter Homework for this Course Map lesson" persist={persistBody} onCommitted={commitBody}/>
         <div className="drawer-images-head"><strong><LessonDetailIcon type="image"/>Homework images</strong>{editingTemplate && <label>+ Add image<input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.target.files?.[0]; uploadImage(file); event.target.value = ''; }}/></label>}</div>
         <div className="drawer-image-grid">{pendingImage && <PendingHomeworkImage file={pendingImage}/>} {selected.record?.assets?.filter(asset => asset.asset_type === 'image').map(asset => <figure key={asset.id}><img src={asset.publicUrl} alt={asset.title || 'Homework attachment'}/>{editingTemplate && <button onClick={async () => { if (!await confirm({ title: 'Remove homework image?', message: 'This image will be removed from this Homework for every published class.', confirmLabel: 'Remove', cancelLabel: 'Keep image', destructive: true })) return; try { await deleteSharedHomeworkImage(asset); setData(current => ({ ...current, records: current.records.map(record => record.id === selected.record.id ? { ...record, assets: record.assets.filter(item => item.id !== asset.id), assetCount: Math.max(0, (record.assetCount || 0) - 1) } : record) })); } catch (deleteError) { setError(deleteError.message); } }}>×</button>}</figure>)}</div>
+        <HomeworkAudioAttachments assets={selected.record?.assets || []} editing={editingTemplate} busy={Boolean(busy)} pendingCount={pendingAudioCount} headerClassName="drawer-images-head" onUpload={uploadAudio} onRename={renameAudio} onRemove={removeAudio}/>
       </section>
       <section className="modal-publication-panel"><h4><LessonDetailIcon type="web"/>Publish to students</h4><div className="publication-table">{selectedCourse.groups.map(group => {
         const assignment = assignmentFor(selected.record, group.id);

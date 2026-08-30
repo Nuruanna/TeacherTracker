@@ -5,6 +5,8 @@ import { optimizeHomeworkImage } from './homeworkImageService';
 import { getAppDate } from '../utils/appTime';
 
 export const CLASS_SITE_ASSET_BUCKET = 'class-site-assets';
+export const MAX_HOMEWORK_AUDIO_BYTES = 20 * 1024 * 1024;
+const MP3_MIME_TYPES = new Set(['audio/mpeg', 'audio/mp3', 'audio/x-mpeg', '', 'application/octet-stream']);
 const SOURCE_IMAGE_BUCKET = 'homework-images';
 
 export class HomeworkPublicationError extends Error {
@@ -47,7 +49,21 @@ export function hasMeaningfulHomework(value) {
   if (!value) return false;
   const body = value.body ?? value.homework ?? '';
   const assets = value.assets ?? value.homeworkMaterials ?? [];
-  return Boolean(text(body) || assets.some(asset => asset?.asset_type === 'image' || asset?.kind === 'image' || Boolean(text(asset?.url))));
+  return Boolean(text(body) || assets.some(asset => ['image', 'audio'].includes(asset?.asset_type) || ['image', 'audio'].includes(asset?.kind) || Boolean(text(asset?.url))));
+}
+
+export function validateHomeworkAudio(file) {
+  if (!/\.mp3$/i.test(file?.name || '') || !MP3_MIME_TYPES.has(String(file?.type || '').toLowerCase())) {
+    throw new HomeworkPublicationError('Only MP3 audio files are supported.');
+  }
+  if (Number(file?.size || 0) > MAX_HOMEWORK_AUDIO_BYTES) {
+    throw new HomeworkPublicationError('Audio files must be 20 MB or smaller.');
+  }
+  return file;
+}
+
+export function homeworkAudioTitle(filename) {
+  return text(String(filename || '').replace(/\.mp3$/i, '')) || 'Audio';
 }
 
 export function homeworkRowDisplay(row) {
@@ -190,7 +206,7 @@ export function validateHomeworkPublication(source, due) {
 }
 
 export function buildClassSiteAssetPath(userId, templateId, assetId, mimeType = 'image/jpeg') {
-  const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+  const extension = mimeType === 'audio/mpeg' ? 'mp3' : mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
   return `${userId}/homework/${templateId}/${assetId}.${extension}`;
 }
 
@@ -296,7 +312,10 @@ async function removeStoragePaths(paths) {
 }
 
 async function replaceTemplateAssets(userId, templateId, materials) {
-  const oldAssets = await query('published asset lookup', supabase.from('homework_assets').select('id,asset_type,bucket,storage_path').eq('owner_id', userId).eq('homework_template_id', templateId));
+  const oldAssets = await query('published asset lookup', supabase.from('homework_assets').select('id,asset_type,bucket,storage_path,sort_order').eq('owner_id', userId).eq('homework_template_id', templateId));
+  const replacedAssets = oldAssets.filter(asset => ['image', 'link'].includes(asset.asset_type));
+  const preservedAssets = oldAssets.filter(asset => !['image', 'link'].includes(asset.asset_type));
+  const firstSortOrder = nextHomeworkAssetSortOrder(preservedAssets);
   const copied = [];
   try {
     for (const material of materials.filter(isImage)) copied.push(await copySourceImage(userId, templateId, material));
@@ -308,15 +327,15 @@ async function replaceTemplateAssets(userId, templateId, materials) {
     ...materials.filter(isLink).map((material, index) => ({
       owner_id: userId, homework_template_id: templateId, asset_type: 'link',
       bucket: null, storage_path: null, mime_type: null, width: null, height: null, size_bytes: null,
-      url: text(material.url), title: text(material.title) || text(material.type) || null, sort_order: index,
+      url: text(material.url), title: text(material.title) || text(material.type) || null, sort_order: firstSortOrder + index,
     })),
-    ...copied.map((item, index) => ({ ...item.row, sort_order: materials.filter(isLink).length + index })),
+    ...copied.map((item, index) => ({ ...item.row, sort_order: firstSortOrder + materials.filter(isLink).length + index })),
   ];
   let inserted = [];
   try {
     if (rows.length) inserted = await query('published asset creation', supabase.from('homework_assets').insert(rows).select('id'));
-    await removeStoragePaths(oldAssets.filter(asset => asset.asset_type !== 'link' && asset.bucket === CLASS_SITE_ASSET_BUCKET && asset.storage_path).map(asset => asset.storage_path));
-    if (oldAssets.length) await query('old asset metadata cleanup', supabase.from('homework_assets').delete().eq('owner_id', userId).in('id', oldAssets.map(asset => asset.id)));
+    await removeStoragePaths(replacedAssets.filter(asset => asset.asset_type !== 'link' && asset.bucket === CLASS_SITE_ASSET_BUCKET && asset.storage_path).map(asset => asset.storage_path));
+    if (replacedAssets.length) await query('old asset metadata cleanup', supabase.from('homework_assets').delete().eq('owner_id', userId).in('id', replacedAssets.map(asset => asset.id)));
   } catch (error) {
     try {
       if (inserted.length) await query('new asset metadata rollback', supabase.from('homework_assets').delete().eq('owner_id', userId).in('id', inserted.map(asset => asset.id)));
@@ -432,6 +451,44 @@ export async function uploadSharedHomeworkImage(templateId, file) {
     const rows = await query('shared image metadata', supabase.from('homework_assets').insert({ owner_id: user.id, homework_template_id: templateId, asset_type: 'image', bucket: CLASS_SITE_ASSET_BUCKET, storage_path: storagePath, mime_type: optimized.mimeType, width: optimized.width, height: optimized.height, size_bytes: optimized.blob.size, sort_order: nextHomeworkAssetSortOrder(existing) }).select('id,homework_template_id,asset_type,bucket,storage_path,mime_type,width,height,size_bytes,url,title,sort_order'));
     return { ...rows[0], publicUrl: supabase.storage.from(CLASS_SITE_ASSET_BUCKET).getPublicUrl(storagePath).data.publicUrl };
   } catch (error) { try { await removeStoragePaths([storagePath]); } catch (cleanupError) { devError('shared image rollback', cleanupError); } throw error; }
+}
+
+export async function uploadSharedHomeworkAudio(templateId, file) {
+  validateHomeworkAudio(file);
+  const user = await currentUser();
+  const assetId = crypto.randomUUID();
+  const storagePath = buildClassSiteAssetPath(user.id, templateId, assetId, 'audio/mpeg');
+  await query('shared audio upload', supabase.storage.from(CLASS_SITE_ASSET_BUCKET).upload(storagePath, file, { contentType: 'audio/mpeg', upsert: false }));
+  try {
+    const existing = await query('shared audio ordering', supabase.from('homework_assets').select('sort_order').eq('owner_id', user.id).eq('homework_template_id', templateId).order('sort_order', { ascending: false }).limit(1));
+    const rows = await query('shared audio metadata', supabase.from('homework_assets').insert({
+      owner_id: user.id, homework_template_id: templateId, asset_type: 'audio',
+      bucket: CLASS_SITE_ASSET_BUCKET, storage_path: storagePath, mime_type: 'audio/mpeg',
+      width: null, height: null, size_bytes: file.size, url: null,
+      title: homeworkAudioTitle(file.name), sort_order: nextHomeworkAssetSortOrder(existing),
+    }).select('id,homework_template_id,asset_type,bucket,storage_path,mime_type,width,height,size_bytes,url,title,sort_order'));
+    return { ...rows[0], publicUrl: supabase.storage.from(CLASS_SITE_ASSET_BUCKET).getPublicUrl(storagePath).data.publicUrl };
+  } catch (error) {
+    try { await removeStoragePaths([storagePath]); } catch (cleanupError) { devError('shared audio rollback', cleanupError); }
+    throw error;
+  }
+}
+
+export async function updateSharedHomeworkAudioTitle(assetId, title) {
+  const user = await currentUser();
+  const rows = await query('shared audio title update', supabase.from('homework_assets').update({ title: text(title) || null })
+    .eq('owner_id', user.id).eq('id', assetId).eq('asset_type', 'audio').select('id,title'));
+  if (rows.length !== 1) throw new HomeworkPublicationError('The Homework audio could not be found.');
+  return rows[0];
+}
+
+export async function deleteSharedHomeworkAudio(asset) {
+  const user = await currentUser();
+  if (asset.asset_type !== 'audio' || asset.bucket !== CLASS_SITE_ASSET_BUCKET || !asset.storage_path?.startsWith(`${user.id}/homework/${asset.homework_template_id}/`)) {
+    throw new HomeworkPublicationError('This Homework audio cannot be removed by the current teacher.');
+  }
+  await removeStoragePaths([asset.storage_path]);
+  await query('shared audio metadata deletion', supabase.from('homework_assets').delete().eq('owner_id', user.id).eq('id', asset.id).eq('asset_type', 'audio'));
 }
 
 export async function deleteSharedHomeworkImage(asset) {

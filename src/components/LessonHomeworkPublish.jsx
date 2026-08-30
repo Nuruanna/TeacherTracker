@@ -3,6 +3,7 @@ import { useConfirmDialog } from './ConfirmDialog';
 import { LessonDetailIcon } from './Icons';
 import HomeworkDueSelector from './HomeworkDueSelector';
 import DebouncedTemplateTextarea from './DebouncedTemplateTextarea';
+import HomeworkAudioAttachments from './HomeworkAudioAttachments';
 import { dayMonth, parseIsoDate } from '../utils/date';
 import {
   archiveHomeworkAssignment, defaultHomeworkDue, deleteHomeworkTemplate, deleteSharedHomeworkImage,
@@ -10,6 +11,7 @@ import {
   hasMeaningfulHomework,
   publishExistingTemplateToClass, publishHomeworkToSourceClass,
   saveCentralHomeworkTemplate, updateHomeworkTemplateBody, uploadSharedHomeworkImage,
+  deleteSharedHomeworkAudio, updateSharedHomeworkAudioTitle, uploadSharedHomeworkAudio,
 } from '../services/classSitesHomeworkService';
 
 const shortDate = value => value ? dayMonth(parseIsoDate(value)) : 'Not set';
@@ -28,6 +30,7 @@ export default function LessonHomeworkPublish({ state, lesson, draft, onTemplate
   const [sharedBody, setSharedBody] = useState('');
   const [sharedBodyContext, setSharedBodyContext] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingAudioCount, setPendingAudioCount] = useState(0);
   const [error, setError] = useState('');
   const textEditorRef = useRef(null);
   const hydratedContext = useRef('');
@@ -99,6 +102,26 @@ export default function LessonHomeworkPublish({ state, lesson, draft, onTemplate
     } catch (uploadError) { setError(uploadError.message || 'Image could not be uploaded.'); }
     finally { setBusy(false); }
   };
+  const uploadAudio = async files => {
+    const requestedContext = sourceContext;
+    setPendingAudioCount(files.length); setBusy(true); setError('');
+    try {
+      let templateId = record?.id;
+      if (!templateId) {
+        templateId = await saveCentralHomeworkTemplate(source.courseMapId, { ...source, id: source.courseMapItemId }, activeSharedBody, null, 'draft');
+        await reload();
+      }
+      for (const file of files) await uploadSharedHomeworkAudio(templateId, file);
+      if (sourceContextRef.current === requestedContext) await reload();
+    } catch (uploadError) { setError(uploadError.message || 'Homework audio could not be uploaded.'); }
+    finally { setPendingAudioCount(0); setBusy(false); }
+  };
+  const renameAudio = async (asset, title) => { try { await updateSharedHomeworkAudioTitle(asset.id, title); await reload(); } catch (saveError) { setError(saveError.message || 'Homework audio title could not be saved.'); } };
+  const removeAudio = async asset => {
+    if (!await confirm({ title: 'Remove Homework audio?', message: 'This audio will be removed from this Homework for every class.', confirmLabel: 'Remove', cancelLabel: 'Keep audio', destructive: true })) return;
+    try { await deleteSharedHomeworkAudio(asset); await reload(); }
+    catch (deleteError) { setError(deleteError.message || 'Homework audio could not be removed.'); }
+  };
   return <section className="lesson-homework-publish shared-homework-area">
     <>
       <div className="shared-homework-heading"><strong className="work-label homework-label"><LessonDetailIcon type="homework"/>Homework</strong><div><button onClick={async () => { if (editingShared) { try { await textEditorRef.current?.flush(); setEditingShared(false); } catch (saveError) { setError(saveError.message || 'Homework could not be saved.'); } } else { setEditingShared(true); requestAnimationFrame(() => textEditorRef.current?.focus()); } }}>{editingShared ? 'Done' : 'Edit'}</button><button disabled title="Custom class Homework will be added later">Custom</button>{record && meaningful && <button className="homework-delete-action" disabled={busy} onClick={deleteTemplate}>Delete</button>}</div></div>
@@ -106,6 +129,7 @@ export default function LessonHomeworkPublish({ state, lesson, draft, onTemplate
       <DebouncedTemplateTextarea ref={textEditorRef} key={templateContext} templateKey={templateContext} initialBody={activeSharedBody} disabled={!editingShared} persist={persistBody} onCommitted={commitBody}/>
       {links.length > 0 && <div className="legacy-homework-links"><small>Existing links</small>{links.map(link => <a href={link.url} target="_blank" rel="noreferrer" key={link.id}>{link.title || link.url}</a>)}</div>}
       <div className="shared-homework-images"><header><strong><LessonDetailIcon type="image"/>Homework images</strong>{editingShared && <label>+ Add image<input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={async event => { await uploadImage(event.target.files?.[0]); event.target.value = ''; }}/></label>}</header><div>{images.map(image => <figure key={image.id}><img src={image.publicUrl} alt={image.title || 'Homework attachment'}/>{editingShared && <button onClick={async () => { if (!await confirm({ title: 'Remove homework image?', message: 'This image will be removed from this Homework for every class.', confirmLabel: 'Remove', cancelLabel: 'Keep image', destructive: true })) return; try { await deleteSharedHomeworkImage(image); await reload(); } catch (deleteError) { setError(deleteError.message); } }}>×</button>}</figure>)}</div></div>
+      <HomeworkAudioAttachments assets={record?.assets || []} editing={editingShared} busy={busy} pendingCount={pendingAudioCount} headerClassName="shared-homework-images-head" onUpload={uploadAudio} onRename={renameAudio} onRemove={removeAudio}/>
     </>
     {editingDates ? <div className="lesson-publication-date-edit"><HomeworkDueSelector assignedDate={source.date} due={due} options={options} onChange={setDue} onDone={() => setEditingDates(false)} ariaPrefix="Lesson Homework"/></div> : <div className="publication-date-row lesson-publication-date-row"><div className="publication-dates"><span><small>Assigned</small>{shortDate(source.date)}</span><span><small>Due</small>{shortDate(published ? assignment.due_date : due.dueDate)}</span></div><button className="date-change" onClick={() => setEditingDates(true)}>Change due date</button></div>}
     {error && <p className="field-error" role="alert">{error}</p>}

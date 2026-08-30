@@ -19,6 +19,9 @@ import {
   resolveHomeworkAssignmentSource,
   selectReusableHomeworkTemplate,
   validateHomeworkPublication,
+  validateHomeworkAudio,
+  homeworkAudioTitle,
+  MAX_HOMEWORK_AUDIO_BYTES,
 } from './classSitesHomeworkService';
 
 const copy = value => JSON.parse(JSON.stringify(value));
@@ -145,6 +148,24 @@ describe('Course Map Homework administration', () => {
 });
 
 describe('Homework relational publication rows', () => {
+  it('accepts conservative MP3 metadata and rejects wrong or oversized files', () => {
+    expect(validateHomeworkAudio({ name: 'dictation.mp3', type: 'audio/mpeg', size: 1000 }).name).toBe('dictation.mp3');
+    expect(validateHomeworkAudio({ name: 'legacy.MP3', type: '', size: 1000 }).name).toBe('legacy.MP3');
+    expect(() => validateHomeworkAudio({ name: 'recording.wav', type: 'audio/mpeg', size: 1000 })).toThrow(/Only MP3/);
+    expect(() => validateHomeworkAudio({ name: 'recording.mp3', type: 'audio/wav', size: 1000 })).toThrow(/Only MP3/);
+    expect(() => validateHomeworkAudio({ name: 'recording.mp3', type: 'audio/mpeg', size: MAX_HOMEWORK_AUDIO_BYTES + 1 })).toThrow(/20 MB or smaller/);
+  });
+
+  it('derives stable audio titles and lets audio-only Homework count as meaningful', () => {
+    expect(homeworkAudioTitle(' Listen and repeat .mp3')).toBe('Listen and repeat');
+    expect(homeworkAudioTitle('.mp3')).toBe('Audio');
+    expect(hasMeaningfulHomework({ body: '', assets: [{ asset_type: 'audio' }] })).toBe(true);
+  });
+
+  it('uses the owner-first MP3 path without changing image paths', () => {
+    expect(buildClassSiteAssetPath('teacher-1', 'template-1', 'audio-1', 'audio/mpeg')).toBe('teacher-1/homework/template-1/audio-1.mp3');
+    expect(buildClassSiteAssetPath('teacher-1', 'template-1', 'image-1', 'image/png')).toBe('teacher-1/homework/template-1/image-1.png');
+  });
   it('uses current Course Map metadata for a stable item instead of its stale materialized lesson snapshot', () => {
     const state = copy(seedState);
     const item = state.courseMaps['grade-8'].items.find(value => value.id === 'g8-001');
