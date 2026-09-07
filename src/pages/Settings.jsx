@@ -36,6 +36,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { formatInAppTimezone, getAppTodayISO } from "../utils/appTime";
 import { useConfirmDialog } from "../components/ConfirmDialog";
 import { deactivateClassSiteForTeachingGroup, syncClassSitesFoundation } from "../services/classSitesService";
+import { replaceAttendanceCalendarProjection, resolveAttendanceClassSite } from "../services/attendanceService";
 
 const tabs = [
   "Academic Calendar",
@@ -180,14 +181,20 @@ function CalendarTab({ state, update, dirty, isDirty }) {
     setDraft(next);
     dirty(true);
   };
-  const save = () => {
+  const save = async () => {
     try {
       let next;
       update((current) => (next = applyAcademicCalendar(current, draft)));
       dirty(false);
-      setMessage(
-        `Academic Calendar updated. Future schedules recalculated for ${capacitySummary(next).length} teaching groups.`,
-      );
+      const savedMessage = `Academic Calendar updated. Future schedules recalculated for ${capacitySummary(next).length} teaching groups.`;
+      setMessage(savedMessage);
+      try {
+        const site = await resolveAttendanceClassSite();
+        await replaceAttendanceCalendarProjection(site.id, next.academicCalendar);
+        setMessage(`${savedMessage} Student Attendance calendar synchronized.`);
+      } catch (syncError) {
+        setMessage(`${savedMessage} Warning: ${syncError.message}`);
+      }
     } catch (error) {
       setMessage(error.message);
     }

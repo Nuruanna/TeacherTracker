@@ -7,6 +7,7 @@ import { useAppNow } from '../hooks/useAppNow';
 import HomeworkAdmin from '../components/HomeworkAdmin';
 import StudyMaterialsAdmin from '../components/StudyMaterialsAdmin';
 import ClassSitesAdmin from '../components/ClassSitesAdmin';
+import AttendanceAdmin from '../components/AttendanceAdmin';
 
 const shortDay={Monday:'Mon',Tuesday:'Tue',Wednesday:'Wed',Thursday:'Thu',Friday:'Fri',Saturday:'Sat',Sunday:'Sun'};
 const nextDate=lesson=>lesson?`${weekday(parseIsoDate(lesson.date))}, ${new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long'}).format(parseIsoDate(lesson.date))}`:null;
@@ -15,6 +16,7 @@ const tabs=[
   {id:'homework',label:'Homework'},
   {id:'materials',label:'Study Materials'},
   {id:'sites',label:'Class Sites'},
+  {id:'attendance',label:'Attendance'},
 ];
 
 function ClassesOverview({groups,navigate}){return <section className="classes-grid">{groups.map(({group,currentItem,schedule,nextLesson})=><button className="class-card card" style={teachingGroupColorStyle(group)} key={group.id} onClick={()=>navigate(`/classes/${group.id}`)}><div className="class-card-head"><strong>{group.displayName}</strong><span>{group.type==='individual'?'Individual':'Class'}</span></div><p className="class-textbook">{group.textbook}</p><div className="class-current"><small>Current position</small>{currentItem?<><b>{currentItem.code}</b>{currentItem.title&&<span>{currentItem.title}</span>}</>:<b>Not started</b>}</div><div className="class-schedule"><small>Weekly schedule</small>{schedule.map(item=><span key={item.id}>{shortDay[item.day]} · Lesson {item.lessonNumber}</span>)}</div><div className="class-next"><small>Next lesson</small>{nextLesson?<><b>{nextDate(nextLesson)}</b><span>Lesson {nextLesson.number} · {nextLesson.start}–{nextLesson.end}</span></>:<b>No upcoming lesson</b>}</div></button>)}</section>}
@@ -31,7 +33,8 @@ export default function Classes({state,update}){
       {tab === 'overview' ? <ClassesOverview groups={groups} navigate={navigate} />
         : tab === 'homework' ? <HomeworkAdmin state={state} update={update} />
           : tab === 'materials' ? <StudyMaterialsAdmin />
-            : <ClassSitesAdmin teachingGroups={state.teachingGroups} />}
+            : tab === 'sites' ? <ClassSitesAdmin teachingGroups={state.teachingGroups} />
+              : <AttendanceAdmin academicCalendar={state.academicCalendar} />}
     </div>
   </div>;
 }
