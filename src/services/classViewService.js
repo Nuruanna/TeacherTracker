@@ -2,7 +2,7 @@ import { resolveBellSlot } from "./bellSchedule";
 import { calculateTeachingGroupCapacity } from "./courseCapacityService";
 import { lessonsForDate } from "./lessonViewService";
 import { isTeachingGroupActive } from "./teachingGroupService";
-import { weeklyTimetableForDate } from "./timetableService";
+import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import { expandedExcludedDates } from "./academicCalendarService";
 import { addDays, isoDate, parseIsoDate, weekday } from "../utils/date";
 import { lessonStatus } from "../utils/lessons";
@@ -95,7 +95,7 @@ export function nextLessonForGroup(state, group, now = getAppNow()) {
 }
 
 export const lessonHistoryForGroup = (state, group, now = getAppNow()) =>
-  state.lessons
+  effectiveStoredLessons(state)
     .filter(
       (item) =>
         item.teachingGroupId === group.id &&

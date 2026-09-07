@@ -1,6 +1,6 @@
 import { activeBellSchedule, resolveTimetableLesson } from "./bellSchedule";
 import { isAcademicDateExcluded } from "./academicCalendarService";
-import { weeklyTimetableForDate } from "./timetableService";
+import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import {
   addCustomLesson,
   calculateTeachingGroupCapacity,
@@ -140,8 +140,9 @@ function recalculateFutureAssignments(state, source, assignedTodayId = null) {
   const map = state.courseMaps[group?.courseMapId];
   if (!map) return state;
   const current = groupCourseState(state, group.id);
+  const storedLessons = effectiveStoredLessons(state);
   const taught = new Set(
-    state.lessons
+    storedLessons
       .filter(
         (item) =>
           item.teachingGroupId === group.id &&
@@ -183,7 +184,7 @@ function recalculateFutureAssignments(state, source, assignedTodayId = null) {
         !resolveTimetableLesson(state, dateKey, entry.day, entry.lessonNumber)
       )
         continue;
-      const occupied = state.lessons.find(
+      const occupied = storedLessons.find(
         (item) =>
           item.date === dateKey &&
           item.number === entry.lessonNumber &&
@@ -218,7 +219,7 @@ export function availablePlannedLessons(state, lesson) {
   const map = state.courseMaps[group?.courseMapId];
   if (!map) return [];
   const used = new Set(
-    state.lessons
+    effectiveStoredLessons(state)
       .filter(
         (item) =>
           item.teachingGroupId === group.id &&

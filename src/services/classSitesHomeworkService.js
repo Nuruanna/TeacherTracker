@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { addDays, isoDate, parseIsoDate, weekday } from '../utils/date';
 import { lessonsForDate } from './lessonViewService';
+import { effectiveStoredLessons } from './timetableService';
 import { optimizeHomeworkImage } from './homeworkImageService';
 import { getAppDate } from '../utils/appTime';
 
@@ -79,7 +80,7 @@ export function homeworkRowDisplay(row) {
 
 export function listHomeworkSources(state) {
   const groups = new Map((state.teachingGroups || []).filter(group => group.type === 'class').map(group => [group.id, group]));
-  return (state.lessons || [])
+  return effectiveStoredLessons(state)
     .filter(lesson => groups.has(lesson.teachingGroupId))
     .filter(lesson => text(lesson.homework) || (lesson.homeworkMaterials || []).length > 0)
     .map(lesson => {
@@ -499,7 +500,7 @@ export async function deleteSharedHomeworkImage(asset) {
 }
 
 export function resolveTargetCourseLesson(state, groupId, courseMapItemId) {
-  const materialized = (state.lessons || []).filter(lesson => lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled').sort((a, b) => a.date.localeCompare(b.date))[0];
+  const materialized = effectiveStoredLessons(state).filter(lesson => lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled').sort((a, b) => a.date.localeCompare(b.date))[0];
   if (materialized) return materialized;
   const end = parseIsoDate(state.academicCalendar?.academicYear?.end);
   if (!end) return null;

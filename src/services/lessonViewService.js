@@ -6,7 +6,7 @@ import {
   teachingGroupFor,
 } from "./teachingGroupService";
 import { isAcademicDateExcluded } from "./academicCalendarService";
-import { weeklyTimetableForDate } from "./timetableService";
+import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
 import { getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
 
@@ -57,9 +57,9 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
 
 export function lessonsForDate(state, date, asOf = getAppNow()) {
   const dateKey = isoDate(date);
-  const historical = state.lessons.filter(
+  const historical = effectiveStoredLessons(state, state.lessons.filter(
     (x) => x.date === dateKey && !isPhantomLessonOutsideAcademicYear(state, x),
-  );
+  ));
   const storedOnly = () =>
     [...historical].sort(
       (a, b) => a.number - b.number || a.start.localeCompare(b.start),

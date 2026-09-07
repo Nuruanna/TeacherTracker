@@ -6,14 +6,15 @@ import { formatInAppTimezone, getAppDate } from '../utils/appTime';
 import { useAppNow } from '../hooks/useAppNow';
 import { classFor, lessonStatus } from '../utils/lessons';
 import { lessonsForDate } from '../services/lessonViewService';
+import { effectiveStoredLessons } from '../services/timetableService';
 import decoration from '../../assets/today-decoration.png';
 import { SeasonalMetaIcon } from '../components/Icons';
 
 export default function Dashboard({state}){
- const now=useAppNow(); const today=getAppDate(now); const lessons=lessonsForDate(state,today,now); const decorate=x=>{const group=classFor(state,x);return {...x,grade:group?.grade,color:group?.color,groupName:group?.displayName,text:x.text};};
- const carried=state.lessons.filter(x=>x.carryForward&&x.unfinished).map(x=>decorate({...x,text:x.unfinished}));
- const recent=state.lessons.filter(x=>['cancelled','rescheduled'].includes(x.manualStatus)).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(x=>decorate({...x,text:x.manualStatus[0].toUpperCase()+x.manualStatus.slice(1),meta:formatInAppTimezone(x.updatedAt,{month:'short',day:'numeric'},'en')}));
- const missing=state.lessons.filter(x=>lessonStatus(x,now)==='completed'&&!x.homework).map(x=>decorate({...x,text:x.code}));
+ const now=useAppNow(); const today=getAppDate(now); const lessons=lessonsForDate(state,today,now); const storedLessons=effectiveStoredLessons(state); const decorate=x=>{const group=classFor(state,x);return {...x,grade:group?.grade,color:group?.color,groupName:group?.displayName,text:x.text};};
+ const carried=storedLessons.filter(x=>x.carryForward&&x.unfinished).map(x=>decorate({...x,text:x.unfinished}));
+ const recent=storedLessons.filter(x=>['cancelled','rescheduled'].includes(x.manualStatus)).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(x=>decorate({...x,text:x.manualStatus[0].toUpperCase()+x.manualStatus.slice(1),meta:formatInAppTimezone(x.updatedAt,{month:'short',day:'numeric'},'en')}));
+ const missing=storedLessons.filter(x=>lessonStatus(x,now)==='completed'&&!x.homework).map(x=>decorate({...x,text:x.code}));
  return <div className="dashboard-grid">
   <div className="left-column"><section className="season-card"><div className="season-content"><h1>{dateLong(today)}</h1><em>{weekday(today)}</em><hr/><p><SeasonalMetaIcon type="academic"/><span>Academic Week 2</span></p><p><SeasonalMetaIcon type="lessons"/><span>{lessons.length} lessons today</span></p></div></section><MiniCalendar selectedDate={today}/></div>
   <section className="today-card card"><div className="today-head"><div><h1>Today</h1><p>{weekday(today)}, {new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long'}).format(today)}</p></div><img src={decoration} alt="" /></div><div className="lesson-list">{lessons.length?lessons.map(x=><LessonRow key={x.id} lesson={x} state={state} now={now}/>):<p className="empty">No lessons today</p>}</div><p className="quote">Every lesson is a step forward.</p></section>
