@@ -3,7 +3,8 @@ import { calculateTeachingGroupCapacity } from "./courseCapacityService";
 import { lessonsForDate } from "./lessonViewService";
 import { isTeachingGroupActive } from "./teachingGroupService";
 import { weeklyTimetableForDate } from "./timetableService";
-import { addDays, isoDate, parseIsoDate } from "../utils/date";
+import { expandedExcludedDates } from "./academicCalendarService";
+import { addDays, isoDate, parseIsoDate, weekday } from "../utils/date";
 import { lessonStatus } from "../utils/lessons";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
 import { compareSchoolDateTime, getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
@@ -69,7 +70,16 @@ export function nextLessonForGroup(state, group, now = getAppNow()) {
   let cursor =
     today < parseIsoDate(calendar.start) ? parseIsoDate(calendar.start) : today;
   const end = parseIsoDate(calendar.end);
+  const storedDates = new Set(state.lessons.filter(item => item.teachingGroupId === group.id).map(item => item.date));
+  const excludedDates = expandedExcludedDates(state.academicCalendar);
   for (; cursor <= end; cursor = addDays(cursor, 1)) {
+    const dateKey = isoDate(cursor);
+    // Do not generate every other group's Course Map lessons while searching
+    // dates on which this group has no slot. Stored lessons still take precedence.
+    if (!storedDates.has(dateKey) && (
+      excludedDates.has(dateKey) || !isTeachingGroupActive(group, dateKey) ||
+      !weeklyTimetableForDate(state, dateKey).some(entry => entry.teachingGroupId === group.id && entry.day === weekday(cursor))
+    )) continue;
     const lessons = lessonsForDate(state, cursor, now).filter(
       (item) =>
         item.teachingGroupId === group.id &&
@@ -157,7 +167,7 @@ export function courseMapItemState(state, group, item, now = getAppNow()) {
   return "upcoming";
 }
 
-export function classOverview(state, group, now = getAppNow()) {
+export function classOverview(state, group, now = getAppNow(), { includeCapacity = true } = {}) {
   const today = getAppTodayISO(now);
   const scheduleDate = group.activeFrom && group.activeFrom > today ? group.activeFrom : today;
   return {
@@ -165,7 +175,7 @@ export function classOverview(state, group, now = getAppNow()) {
     currentItem: currentCourseItem(state, group),
     schedule: weeklyScheduleForGroup(state, group, scheduleDate),
     nextLesson: nextLessonForGroup(state, group, now),
-    capacity: group.courseMapId
+    capacity: includeCapacity && group.courseMapId
       ? calculateTeachingGroupCapacity(state, group.id)
       : null,
   };
