@@ -1,5 +1,6 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import courseSectionTitles from '../../course-maps/course-section-titles.json';
+import { rainbowProgressStep } from './courseMapProgress';
 
 const SELECT_COURSE = 'id,source_course_map_id,display_name,grade';
 const SELECT_SECTION = 'id,course_id,section_type,section_number,display_title,sort_order';
@@ -51,11 +52,13 @@ export function normalizedStudentProgress(courseMap, currentItem) {
   const sectionItems = (courseMap.items || []).filter(item => item.type === 'lesson' && sameSection(item, currentItem));
   if (!sectionItems.length) return null;
   if (sectionFromItem(currentItem)?.sectionType === 'unit') {
-    const steps = [...new Set(sectionItems.map(item => Number(item.step)).filter(positiveInteger))];
+    const steps = sectionItems.map(rainbowProgressStep).filter(positiveInteger);
+    const total = steps.length ? Math.max(...steps) : 0;
+    const effectiveStep = rainbowProgressStep(currentItem);
     const current = currentItem.phase === 'final'
-      ? steps.length
-      : steps.indexOf(Number(currentItem.step)) + 1;
-    return current > 0 ? { kind: 'step', current, total: steps.length } : null;
+      ? total
+      : effectiveStep;
+    return current > 0 ? { kind: 'step', current, total } : null;
   }
   const current = sectionItems.findIndex(item => item.id === currentItem.id) + 1;
   return current > 0 ? { kind: 'lesson', current, total: sectionItems.length } : null;

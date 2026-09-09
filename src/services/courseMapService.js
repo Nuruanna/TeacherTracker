@@ -1,3 +1,5 @@
+import { validRainbowStepRange } from './courseMapProgress';
+
 const clone=value=>JSON.parse(JSON.stringify(value));
 const ITEM_TYPES=new Set(['lesson','reserve']);
 const normalizeItems=items=>items.map((item,index)=>({...item,order:index+1}));
@@ -19,6 +21,9 @@ export function validateCourseMap(input){
   if(!ITEM_TYPES.has(item.type)) errors.push(`Unsupported item type: ${item.type}.`);
   if(typeof item.code!=='string'||!item.code.trim()) errors.push(`Item ${item.id||'?'} needs a code.`);
   if(item.type==='lesson'&&item.title!==null&&typeof item.title!=='string') errors.push(`Invalid title for ${item.id||'item'}.`);
+  if(Object.hasOwn(item,'stepStart')||Object.hasOwn(item,'stepEnd')) {
+   if(!validRainbowStepRange(item)) errors.push(`Invalid Step range for ${item.id||'item'}.`);
+  }
  }
  return {valid:errors.length===0,errors};
 }

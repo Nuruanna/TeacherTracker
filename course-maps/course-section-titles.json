@@ -45,6 +45,9 @@
     }
   },
   "grade-5": {
+    "starter": {
+      "0": "Past Simple Review"
+    },
     "unit": {
       "1": "Holidays Are Over",
       "2": "Family History",

@@ -55,10 +55,10 @@ describe('Class Sites foundation planning', () => {
       'grade-2': 7,
       'grade-3': 9,
       'grade-4': 9,
-      'grade-5': 6,
+      'grade-5': 7,
       'grade-8': 4,
     });
-    expect(plan.sections).toHaveLength(35);
+    expect(plan.sections).toHaveLength(36);
     expect(plan.sections.filter(section => section.sectionType === 'reading')).toEqual([
       expect.objectContaining({ sourceCourseMapId: 'grade-2', sectionNumber: 0, displayTitle: 'My Letters!', sortOrder: 0 }),
     ]);
@@ -66,6 +66,7 @@ describe('Class Sites foundation planning', () => {
       expect.objectContaining({ sourceCourseMapId: 'grade-2', sectionNumber: 0, displayTitle: 'Hello! My Family!', sortOrder: 0 }),
       expect.objectContaining({ sourceCourseMapId: 'grade-3', sectionNumber: 0, displayTitle: 'Welcome back!', sortOrder: 0 }),
       expect.objectContaining({ sourceCourseMapId: 'grade-4', sectionNumber: 0, displayTitle: 'Back together!', sortOrder: 0 }),
+      expect.objectContaining({ sourceCourseMapId: 'grade-5', sectionNumber: 0, displayTitle: 'Past Simple Review', sortOrder: 0 }),
     ]);
     expect(plan.sections.every(section => section.displayTitle)).toBe(true);
     expect(plan.classSites).toHaveLength(13);
@@ -112,7 +113,7 @@ describe('Class Sites foundation planning', () => {
     expect(['grade2-a', 'grade2-b', 'grade2-v'].map(sectionFor)).toEqual(Array(3).fill('grade-2:reading:0'));
     expect(['grade3-a', 'grade3-b', 'grade3-v'].map(sectionFor)).toEqual(Array(3).fill('grade-3:starter:0'));
     expect(['grade4-a', 'grade4-b', 'grade4-v'].map(sectionFor)).toEqual(Array(3).fill('grade-4:starter:0'));
-    expect(['grade5-a', 'grade5-b', 'grade5-v'].map(sectionFor)).toEqual(Array(3).fill('grade-5:unit:1'));
+    expect(['grade5-a', 'grade5-b', 'grade5-v'].map(sectionFor)).toEqual(Array(3).fill('grade-5:starter:0'));
     expect(sectionFor('grade8-a')).toBe('grade-8:unit:1');
   });
 
@@ -122,9 +123,9 @@ describe('Class Sites foundation planning', () => {
     const starterKeys = plan => plan.sections
       .filter(section => section.sectionType === 'starter')
       .map(section => `${section.sourceCourseMapId}:${section.sectionType}:${section.sectionNumber}`);
-    expect(starterKeys(first)).toEqual(['grade-2:starter:0', 'grade-3:starter:0', 'grade-4:starter:0']);
+    expect(starterKeys(first)).toEqual(['grade-2:starter:0', 'grade-3:starter:0', 'grade-4:starter:0', 'grade-5:starter:0']);
     expect(starterKeys(second)).toEqual(starterKeys(first));
-    expect(new Set(starterKeys(second)).size).toBe(3);
+    expect(new Set(starterKeys(second)).size).toBe(4);
   });
 
   it('creates exactly one Reading section only for Spotlight 2 on repeated planning', () => {
@@ -234,17 +235,18 @@ describe('Course section editorial titles', () => {
   it('resolves approved Reading, Starter, Module and Unit titles', () => {
     expect(resolveCourseSectionTitle('grade-2', 'reading', 0)).toBe('My Letters!');
     expect(resolveCourseSectionTitle('grade-3', 'starter', 0)).toBe('Welcome back!');
+    expect(resolveCourseSectionTitle('grade-5', 'starter', 0)).toBe('Past Simple Review');
     expect(resolveCourseSectionTitle('grade-4', 'module', 3)).toBe('Tasty treats!');
     expect(resolveCourseSectionTitle('grade-8', 'unit', 2)).toBe('Performing Arts: Theatre');
     expect(resolveCourseSectionTitle('grade-8', 'unit', 99)).toBeNull();
   });
 
-  it('covers all 35 current relational sections without duplicate identities', () => {
+  it('covers all 36 current relational sections without duplicate identities', () => {
     const plan = buildClassSitesFoundation(copy(seedState));
     const identities = plan.sections.map(section => `${section.sourceCourseMapId}:${section.sectionType}:${section.sectionNumber}`);
-    expect(plan.sections).toHaveLength(35);
-    expect(new Set(identities).size).toBe(35);
-    expect(plan.sections.filter(section => section.displayTitle)).toHaveLength(35);
+    expect(plan.sections).toHaveLength(36);
+    expect(new Set(identities).size).toBe(36);
+    expect(plan.sections.filter(section => section.displayTitle)).toHaveLength(36);
     expect(buildClassSitesFoundation(copy(seedState)).sections).toEqual(plan.sections);
   });
 });

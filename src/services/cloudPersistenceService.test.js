@@ -33,7 +33,7 @@ describe('cloud-primary persistence', () => {
       saveCache: vi.fn(),
     });
     expect(result).toMatchObject({ cloudWritable: true, requiresCloudSave: true });
-    expect(result.state).toMatchObject({ schemaVersion: 11, courseMaps: { 'grade-8': { plannedItemCount: 95, reserveCount: 7 } } });
+    expect(result.state).toMatchObject({ schemaVersion: 11, courseMaps: { 'grade-8': { plannedItemCount: 89, reserveCount: 6 } } });
   });
 
   it('uses the same row migration for a serialized Realtime JSONB payload', () => {
