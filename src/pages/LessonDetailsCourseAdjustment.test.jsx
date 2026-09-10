@@ -37,6 +37,8 @@ function fixture() {
 }
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(asOf);
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   state = fixture();
   lesson = lessonsForDate(state, new Date('2026-09-10T12:00:00+10:00'), asOf)[0];
@@ -60,6 +62,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
+  vi.useRealTimers();
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 });
 

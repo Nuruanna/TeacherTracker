@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { seedState } from '../data/seed';
 import { parseIsoDate } from '../utils/date';
+import * as lessonViewService from './lessonViewService';
 import {
   buildAssignmentRow,
   buildHomeworkCourseAdmin,
@@ -75,6 +76,57 @@ describe('Homework due lesson/date planning', () => {
     ];
     expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-001').date).toBe('2026-09-14');
     expect(resolveTargetCourseLesson(state, 'grade3-b', 'g3-001').date).toBe('2026-09-15');
+  });
+
+  it('does not scan the academic year for a missing past Course Map item', () => {
+    const state = copy(seedState);
+    state.academicCalendar.academicYear.end = '2027-05-31';
+    state.teachingGroupCourseStates['grade3-a'].currentPosition = 10;
+    const scan = vi.spyOn(lessonViewService, 'lessonsForDate');
+    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-001')).toBeNull();
+    expect(scan).not.toHaveBeenCalled();
+    scan.mockRestore();
+  });
+
+  it('keeps explicit historical assignments ahead of the past-item fast exit', () => {
+    const state = copy(seedState);
+    const eventId = 'planned-2026-09-08-grade3-a-tuesday-4';
+    state.teachingGroupCourseStates['grade3-a'].currentPosition = 10;
+    state.teachingGroupCourseStates['grade3-a'].lessonAssignments[eventId] = {
+      courseMapItemId: 'g3-001',
+    };
+    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-001')).toMatchObject({
+      id: eventId,
+      courseMapItemId: 'g3-001',
+    });
+  });
+
+  it('recognizes a covered Course Map item without searching for a separate occurrence', () => {
+    const state = copy(seedState);
+    state.teachingGroupCourseStates['grade3-a'].currentPosition = 2;
+    state.teachingGroupCourseStates['grade3-a'].courseAdjustments = [{
+      id: 'covered-g3-002', type: 'coveredWithoutSeparateLesson', courseMapItemId: 'g3-002',
+      reason: 'combined', withLessonId: 'planned-2026-09-07-grade3-a-monday-5',
+      withLessonDate: '2026-09-07', withCourseMapItemId: 'g3-001',
+      previousCurrentPosition: 0, resultingCurrentPosition: 2,
+      note: '', createdAt: '2026-09-07T03:00:00.000Z',
+    }];
+    const scan = vi.spyOn(lessonViewService, 'lessonsForDate');
+    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-002')).toBeNull();
+    expect(scan).not.toHaveBeenCalled();
+    scan.mockRestore();
+  });
+
+  it('calls lesson generation only on dates with a target-class occurrence', () => {
+    const state = copy(seedState);
+    state.academicCalendar.academicYear.end = '2027-05-31';
+    const lastItem = state.courseMaps['grade-8'].items.filter(item => item.type === 'lesson').at(-1);
+    const scan = vi.spyOn(lessonViewService, 'lessonsForDate');
+    const target = resolveTargetCourseLesson(state, 'grade8-a', lastItem.id);
+    expect(target).toMatchObject({ teachingGroupId: 'grade8-a', courseMapItemId: lastItem.id });
+    expect(scan.mock.calls.length).toBeGreaterThan(0);
+    expect(scan.mock.calls.length).toBeLessThanOrEqual(1);
+    scan.mockRestore();
   });
 
   it('builds Due lesson choices from each parallel class schedule', () => {

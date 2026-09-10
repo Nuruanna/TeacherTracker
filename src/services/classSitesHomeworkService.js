@@ -1,9 +1,13 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { addDays, isoDate, parseIsoDate, weekday } from '../utils/date';
 import { lessonsForDate } from './lessonViewService';
-import { effectiveStoredLessons } from './timetableService';
+import { effectiveStoredLessons, weeklyTimetableForDate } from './timetableService';
 import { optimizeHomeworkImage } from './homeworkImageService';
 import { getAppDate } from '../utils/appTime';
+import { isAcademicDateExcluded } from './academicCalendarService';
+import { coursePlanningContext } from './courseAdjustmentService';
+import { isTeachingGroupActive } from './teachingGroupService';
+import { resolveTimetableLesson } from './bellSchedule';
 
 export const CLASS_SITE_ASSET_BUCKET = 'class-site-assets';
 export const MAX_HOMEWORK_AUDIO_BYTES = 20 * 1024 * 1024;
@@ -123,8 +127,13 @@ export function dueLessonOptions(state, source, limit = 8) {
   const end = parseIsoDate(state.academicCalendar?.academicYear?.end);
   if (!start || !end) return [];
   const asOf = new Date(`${source.date}T00:00:00+10:00`);
+  const group = state.teachingGroups?.find(item => item.id === source.teachingGroupId);
+  const storedDates = effectiveStoredLessons(state)
+    .filter(lesson => lesson.teachingGroupId === source.teachingGroupId)
+    .reduce((dates, lesson) => dates.add(lesson.date), new Set());
   const result = [];
   for (let date = addDays(start, 1); date <= end && result.length < limit; date = addDays(date, 1)) {
+    if (!homeworkDateHasGroupOccurrence(state, group, date, storedDates)) continue;
     for (const lesson of lessonsForDate(state, date, asOf)) {
       if (lesson.teachingGroupId !== source.teachingGroupId) continue;
       if (lesson.manualStatus === 'cancelled' || lesson.manualStatus === 'rescheduled') continue;
@@ -150,6 +159,14 @@ export function defaultHomeworkDue(state, source) {
   const next = dueLessonOptions(state, source, 1)[0];
   return next ? { mode: `lesson:${next.id}`, dueDate: next.date, dueLessonDate: next.date, dueLessonId: next.id } : { mode: '', dueDate: '', dueLessonDate: null, dueLessonId: null };
 }
+
+const homeworkDateHasGroupOccurrence = (state, group, date, storedDates) => {
+  const dateKey = isoDate(date);
+  if (storedDates.has(dateKey)) return true;
+  if (!group || isAcademicDateExcluded(state.academicCalendar, dateKey) || !isTeachingGroupActive(group, dateKey)) return false;
+  const day = weekday(date);
+  return weeklyTimetableForDate(state, dateKey).some(entry => entry.teachingGroupId === group.id && entry.day === day);
+};
 
 const mapSection = item => item?.sectionType === 'reading' ? { key: 'reading:0', label: 'Reading' }
   : item?.sectionType === 'starter' ? { key: 'starter:0', label: 'Starter' }
@@ -502,12 +519,50 @@ export async function deleteSharedHomeworkImage(asset) {
 export function resolveTargetCourseLesson(state, groupId, courseMapItemId) {
   const materialized = effectiveStoredLessons(state).filter(lesson => lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled').sort((a, b) => a.date.localeCompare(b.date))[0];
   if (materialized) return materialized;
+  const group = state.teachingGroups?.find(item => item.id === groupId);
+  const courseState = state.teachingGroupCourseStates?.[groupId];
+  if (!group || !courseState) return null;
+  const assignments = Object.entries(courseState.lessonAssignments || {})
+    .filter(([, assignment]) => assignment?.courseMapItemId === courseMapItemId);
+  for (const [eventId] of assignments) {
+    const dateKey = eventId.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    const date = parseIsoDate(dateKey);
+    if (!date) continue;
+    const assigned = lessonsForDate(state, date).find(lesson => lesson.id === eventId && lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled');
+    if (assigned) return assigned;
+  }
+  const planning = coursePlanningContext(state, group);
+  if (planning.deterministic) {
+    if (planning.coveredIds.has(courseMapItemId)) return null;
+    const targetIndex = planning.lessons.findIndex(item => item.id === courseMapItemId);
+    if (targetIndex < 0 || targetIndex < planning.rawPosition) return null;
+  } else return null;
   const end = parseIsoDate(state.academicCalendar?.academicYear?.end);
   if (!end) return null;
   const today = getAppDate();
-  for (let date = today; date <= end; date = addDays(date, 1)) {
-    const match = lessonsForDate(state, date).find(lesson => lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled');
-    if (match) return match;
+  const academicStart = parseIsoDate(state.academicCalendar?.academicYear?.start);
+  const firstDate = academicStart && today < academicStart ? academicStart : today;
+  let offset = 0;
+  for (let date = firstDate; date <= end; date = addDays(date, 1)) {
+    const dateKey = isoDate(date);
+    if (isAcademicDateExcluded(state.academicCalendar, dateKey) || !isTeachingGroupActive(group, dateKey)) continue;
+    const day = weekday(date);
+    const entries = weeklyTimetableForDate(state, dateKey)
+      .filter(entry => entry.teachingGroupId === groupId && entry.day === day)
+      .sort((a, b) => a.lessonNumber - b.lessonNumber);
+    for (const entry of entries) {
+      if (!resolveTimetableLesson(state, dateKey, day, entry.lessonNumber)) continue;
+      const eventId = `planned-${dateKey}-${entry.id}`;
+      const assignment = courseState.lessonAssignments?.[eventId];
+      const adjustment = planning.adjustments.find(item => item.withLessonId === eventId);
+      const plannedItem = planning.items[planning.position + offset] || null;
+      const resolvedItemId = assignment?.courseMapItemId || adjustment?.withCourseMapItemId || plannedItem?.id || null;
+      if (resolvedItemId === courseMapItemId) {
+        const match = lessonsForDate(state, date).find(lesson => lesson.id === eventId && lesson.teachingGroupId === groupId && lesson.courseMapItemId === courseMapItemId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled');
+        if (match) return match;
+      }
+      if (!adjustment) offset += 1;
+    }
   }
   return null;
 }

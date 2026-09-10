@@ -53,6 +53,22 @@ export default function HomeworkAdmin({ state, update }) {
   const course = courses.find(item => item.grade === activeGrade);
   const selectedCourse = courses.find(item => item.courseMapId === selectedKey?.courseMapId);
   const selected = selectedCourse?.sections.flatMap(section => section.rows).find(row => row.item.id === selectedKey?.itemId);
+  const publicationPlanning = useMemo(() => {
+    if (!selectedKey) return new Map();
+    const groups = (state.teachingGroups || []).filter(group => group.type === 'class' && group.courseMapId === selectedKey.courseMapId);
+    return new Map(groups.map(group => {
+      const target = resolveTargetCourseLesson(state, group.id, selectedKey.itemId);
+      const source = target ? { ...target, teachingGroupId: group.id } : null;
+      return [group.id, { target, automaticDue: source ? defaultHomeworkDue(state, source) : {} }];
+    }));
+  }, [state, selectedKey?.courseMapId, selectedKey?.itemId]);
+  const editingDueGroups = selectedCourse?.groups.filter(group => dateChanges[group.id]?.editing).map(group => group.id).join('|') || '';
+  const dueOptionsByGroup = useMemo(() => new Map(
+    editingDueGroups.split('|').filter(Boolean).map(groupId => {
+      const target = publicationPlanning.get(groupId)?.target;
+      return [groupId, target ? dueLessonOptions(state, { ...target, teachingGroupId: groupId }) : []];
+    }),
+  ), [state, publicationPlanning, editingDueGroups]);
   const itemContext = selected ? `${selectedCourse.courseMapId}:${selected.item.id}` : '';
   const editorContext = itemContext;
   const editorContextRef = useRef(editorContext);
@@ -125,10 +141,11 @@ export default function HomeworkAdmin({ state, update }) {
   const publishGroup = async group => {
     let template = selected.record;
     if (!template) { const id = await saveDraft(); if (!id) return; const latest = await reload(); template = latest.records.find(record => record.id === id); }
-    const lesson = resolveTargetCourseLesson(state, group.id, selected.item.id);
+    const planning = publicationPlanning.get(group.id);
+    const lesson = planning?.target;
     if (!lesson) { setError(`Assigned lesson date for ${group.displayName} could not be resolved safely.`); return; }
     const selectedDue = dateChanges[group.id];
-    const due = selectedDue?.dueDate ? { mode: selectedDue.mode, dueDate: selectedDue.dueDate, dueLessonDate: selectedDue.dueLessonDate || null, dueLessonId: selectedDue.dueLessonId || null } : defaultHomeworkDue(state, { ...lesson, teachingGroupId: group.id });
+    const due = selectedDue?.dueDate ? { mode: selectedDue.mode, dueDate: selectedDue.dueDate, dueLessonDate: selectedDue.dueLessonDate || null, dueLessonId: selectedDue.dueLessonId || null } : planning.automaticDue;
     if (!due.dueDate) { setError(`Due date for ${group.displayName} needs manual selection in Lesson Details.`); return; }
     setBusy(group.id); setError('');
     try { await publishExistingTemplateToClass(state, template, lesson, due); await reload(); }
@@ -216,9 +233,8 @@ export default function HomeworkAdmin({ state, update }) {
       </section>
       <section className="modal-publication-panel"><h4><LessonDetailIcon type="web"/>Publish to students</h4><div className="publication-table">{selectedCourse.groups.map(group => {
         const assignment = assignmentFor(selected.record, group.id);
-        const target = resolveTargetCourseLesson(state, group.id, selected.item.id);
-        const dueOptions = target ? dueLessonOptions(state, { ...target, teachingGroupId: group.id }) : [];
-        const automaticDue = target ? defaultHomeworkDue(state, { ...target, teachingGroupId: group.id }) : {};
+        const { target, automaticDue } = publicationPlanning.get(group.id) || { target: null, automaticDue: {} };
+        const dueOptions = dueOptionsByGroup.get(group.id) || [];
         const selectedDue = dateChanges[group.id] || dueSelectionFromAssignment(assignment, automaticDue);
         const chosenAssigned = target?.date || assignment?.assigned_date;
         const chosenDue = selectedDue?.dueDate;
