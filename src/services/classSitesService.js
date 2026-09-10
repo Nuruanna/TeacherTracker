@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import courseSectionTitles from '../../course-maps/course-section-titles.json';
 import { rainbowProgressStep } from './courseMapProgress';
+import { coursePlanningContext } from './courseAdjustmentService';
 
 const SELECT_COURSE = 'id,source_course_map_id,display_name,grade';
 const SELECT_SECTION = 'id,course_id,section_type,section_number,display_title,sort_order';
@@ -93,10 +94,9 @@ export function buildClassSitesFoundation(state) {
   const classSites = (state.teachingGroups || [])
     .filter(group => group?.type === 'class' && group.id && group.courseMapId && !group.archivedAt)
     .map(group => {
-      const lessons = (state.courseMaps?.[group.courseMapId]?.items || []).filter(item => item.type === 'lesson');
-      const position = Math.max(0, state.teachingGroupCourseStates?.[group.id]?.currentPosition || 0);
-      const currentSection = sectionFromItem(lessons[position]);
-      const currentItem = lessons[position] || null;
+      const planning = coursePlanningContext(state, group);
+      const currentItem = planning.deterministic ? planning.items[planning.position] || null : null;
+      const currentSection = sectionFromItem(currentItem);
       const progress = normalizedStudentProgress(state.courseMaps?.[group.courseMapId], currentItem);
       return {
         sourceTeachingGroupId: group.id,

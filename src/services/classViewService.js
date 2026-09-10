@@ -8,6 +8,10 @@ import { addDays, isoDate, parseIsoDate, weekday } from "../utils/date";
 import { lessonStatus } from "../utils/lessons";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
 import { compareSchoolDateTime, getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
+import {
+  courseAdjustmentForItem,
+  coursePlanningContext,
+} from "./courseAdjustmentService";
 
 const DAY_ORDER = [
   "Monday",
@@ -29,12 +33,8 @@ export const plannedCourseItems = (state, group) =>
     (item) => item.type === "lesson",
   ) || [];
 export function currentCourseItem(state, group) {
-  const items = plannedCourseItems(state, group);
-  const position = Math.max(
-    0,
-    state.teachingGroupCourseStates?.[group.id]?.currentPosition || 0,
-  );
-  return items[position] || null;
+  const planning = coursePlanningContext(state, group);
+  return planning.deterministic ? planning.items[planning.position] || null : null;
 }
 
 export function weeklyScheduleForGroup(
@@ -127,6 +127,8 @@ export function currentSectionProgress(state, group, now = getAppNow()) {
       .filter((item) => lessonStatus(item, now) === "completed")
       .map((item) => item.courseMapItemId),
   );
+  for (const id of coursePlanningContext(state, group).coveredIds)
+    completedIds.add(id);
   return {
     label: sectionKey(current),
     completed: items.filter((item) => completedIds.has(item.id)).length,
@@ -151,6 +153,9 @@ export function groupedCourseMap(state, group) {
 
 export function courseMapItemState(state, group, item, now = getAppNow()) {
   if (item.type === "reserve") return "reserve";
+  const adjustment = courseAdjustmentForItem(state, group.id, item.id);
+  if (adjustment)
+    return adjustment.reason === "combined" ? "combined" : "covered";
   const planned = plannedCourseItems(state, group);
   const position = Math.max(
     0,

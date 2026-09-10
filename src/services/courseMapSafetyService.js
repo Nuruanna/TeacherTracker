@@ -17,6 +17,7 @@ export function localCourseMapItemReferences(state, courseMapId, itemId) {
     if (itemIndex >= 0 && itemIndex <= (courseState?.currentPosition || 0)) references.push('active class progress');
     if (Object.values(courseState?.lessonAssignments || {}).some(value => value?.courseMapItemId === itemId)) references.push('future lesson assignments');
     if ((courseState?.returnedPlannedLessons || []).some(value => value?.courseMapItemId === itemId)) references.push('returned or continued lessons');
+    if ((courseState?.courseAdjustments || []).some(value => value?.courseMapItemId === itemId || value?.withCourseMapItemId === itemId)) references.push('course adjustments');
   }
   return [...new Set(references)];
 }

@@ -20,6 +20,11 @@ import { lessonStatus } from "../utils/lessons";
 import { dayMonthYear, parseIsoDate, weekday } from "../utils/date";
 import { useAppNow } from "../hooks/useAppNow";
 import { useConfirmDialog } from "../components/ConfirmDialog";
+import {
+  courseAdjustmentForItem,
+  courseAdjustmentReason,
+  undoCourseAdjustment,
+} from "../services/courseAdjustmentService";
 
 const PositionModal = ({ state, group, current, onClose, onChange }) => {
   const requestConfirmation = useConfirmDialog();
@@ -233,7 +238,7 @@ export default function ClassDetails({ state, update }) {
         {tab === "history" ? (
           <HistoryTab history={history} navigate={navigate} now={now} />
         ) : (
-          <CourseMapTab state={state} group={group} now={now} />
+          <CourseMapTab state={state} group={group} now={now} update={update} />
         )}
       </section>
       {positionOpen && (
@@ -290,7 +295,9 @@ function HistoryTab({ history, navigate, now }) {
     </div>
   );
 }
-function CourseMapTab({ state, group, now }) {
+function CourseMapTab({ state, group, now, update }) {
+  const requestConfirmation = useConfirmDialog();
+  const [undoError, setUndoError] = useState("");
   const sections = groupedCourseMap(state, group);
   if (!sections.length)
     return (
@@ -301,20 +308,46 @@ function CourseMapTab({ state, group, now }) {
     );
   return (
     <div className="class-map">
+      {undoError && <p className="course-adjustment-error" role="alert">{undoError}</p>}
       {sections.map((section, index) => (
         <section key={`${section.label}-${index}`}>
           <h2>{section.label}</h2>
           <div>
             {section.items.map((item) => {
               const status = courseMapItemState(state, group, item, now);
+              const adjustment = courseAdjustmentForItem(state, group.id, item.id);
+              const reason = adjustment ? courseAdjustmentReason(adjustment.reason) : null;
+              const statusLabel = status === "combined"
+                ? "Combined"
+                : status === "covered"
+                  ? "Covered"
+                  : status.charAt(0).toUpperCase() + status.slice(1);
+              const undo = async () => {
+                if (!adjustment || !await requestConfirmation({
+                  title: "Undo course adjustment?",
+                  message: `${item.code}${item.title ? ` — ${item.title}` : ""} will require a separate future lesson again.`,
+                  confirmLabel: "Undo adjustment",
+                  cancelLabel: "Keep adjustment",
+                })) return;
+                try {
+                  const next = undoCourseAdjustment(state, group.id, adjustment.id);
+                  setUndoError("");
+                  update(() => next);
+                } catch (error) {
+                  setUndoError(error.message);
+                }
+              };
               return (
                 <article
                   className={`map-item map-item-${status}`}
                   key={item.id}
+                  title={reason?.label}
                 >
                   <span>
                     {status === "completed"
                       ? "✓"
+                      : status === "combined" || status === "covered"
+                        ? "◇"
                       : status === "current"
                         ? "●"
                         : status === "reserve"
@@ -325,7 +358,10 @@ function CourseMapTab({ state, group, now }) {
                     <strong>{item.code}</strong>
                     {item.title && <small>{item.title}</small>}
                   </div>
-                  <em>{status}</em>
+                  <span className="map-item-state">
+                    <em>{statusLabel}</em>
+                    {adjustment && <button onClick={undo}>Undo</button>}
+                  </span>
                 </article>
               );
             })}

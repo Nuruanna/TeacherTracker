@@ -46,7 +46,7 @@ export function saveTeachingGroup(state,group,weeklySlots=[],effectiveFrom=getAp
  const assigned=weeklySlots.map((slot,index)=>({id:`${validation.teachingGroup.id}-${slot.day.toLowerCase()}-${slot.lessonNumber}-${index}`,day:slot.day,lessonNumber:Number(slot.lessonNumber),teachingGroupId:validation.teachingGroup.id}));
  const oldCourseState=state.teachingGroupCourseStates?.[validation.teachingGroup.id];
  const teachingGroupCourseStates={...(state.teachingGroupCourseStates||{})};
- if(validation.teachingGroup.courseMapId) teachingGroupCourseStates[validation.teachingGroup.id]=oldCourseState?.courseMapId===validation.teachingGroup.courseMapId?oldCourseState:{teachingGroupId:validation.teachingGroup.id,courseMapId:validation.teachingGroup.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]};
+ if(validation.teachingGroup.courseMapId) teachingGroupCourseStates[validation.teachingGroup.id]=oldCourseState?.courseMapId===validation.teachingGroup.courseMapId?oldCourseState:{teachingGroupId:validation.teachingGroup.id,courseMapId:validation.teachingGroup.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[],courseAdjustments:[]};
  else delete teachingGroupCourseStates[validation.teachingGroup.id];
  const weeklyTimetable=[...retained,...assigned];
  const version={id:`timetable-${effectiveFrom}`,effectiveFrom,entries:weeklyTimetable};

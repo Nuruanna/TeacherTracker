@@ -35,30 +35,44 @@ import {
   uploadHomeworkImage,
 } from "../services/homeworkImageService";
 import LessonHomeworkPublish from "../components/LessonHomeworkPublish";
+import {
+  COURSE_ADJUSTMENT_REASONS,
+  skipNextCourseLesson,
+  skipNextCourseLessonPreview,
+} from "../services/courseAdjustmentService";
 
 const Arrow = ({ direction }) => (
   <span aria-hidden="true">{direction === "left" ? "←" : "→"}</span>
 );
-const Modal = ({ title, children, onClose }) => (
-  <div
-    className="lesson-modal-backdrop"
-    role="presentation"
-    onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-  >
-    <section
-      className="lesson-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="lesson-modal-title"
+const Modal = ({ title, children, onClose }) => {
+  const closeRef = useRef(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const close = event => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+  return (
+    <div
+      className="lesson-modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <button className="modal-close" onClick={onClose} aria-label="Close">
-        ×
-      </button>
-      <h2 id="lesson-modal-title">{title}</h2>
-      {children}
-    </section>
-  </div>
-);
+      <section
+        className="lesson-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lesson-modal-title"
+      >
+        <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+        <h2 id="lesson-modal-title">{title}</h2>
+        {children}
+      </section>
+    </div>
+  );
+};
 
 export default function LessonDetails({ state, update }) {
   const requestConfirmation = useConfirmDialog();
@@ -165,6 +179,10 @@ export default function LessonDetails({ state, update }) {
   const navigation = lesson ? sameDayLessonNavigation(state, lesson) : {};
   const primary = lesson ? lessonStatus(lesson) : null;
   const capacity = lesson ? reserveForLesson(state, lesson) : null;
+  const skipPreview = useMemo(
+    () => lesson ? skipNextCourseLessonPreview(state, lesson) : null,
+    [state, lesson?.id, lesson?.courseMapItemId],
+  );
   if (!lesson)
     return (
       <section className="placeholder card">
@@ -479,6 +497,14 @@ export default function LessonDetails({ state, update }) {
               {saveStatus === "saving" ? "Saving…" : "✓ Saved"}
             </p>
             <div className="lesson-actions">
+              <button
+                className="skip-course-action"
+                disabled={!skipPreview?.available}
+                title={skipPreview?.available ? undefined : skipPreview?.reason}
+                onClick={() => setPanel("skip-course")}
+              >
+                Skip next course lesson
+              </button>
               {primary === "cancelled" ? (
                 <button className="restore-action" onClick={doRestore}>
                   Restore lesson
@@ -523,7 +549,66 @@ export default function LessonDetails({ state, update }) {
           }}
         />
       )}
+      {panel === "skip-course" && skipPreview?.available && (
+        <SkipCourseLessonModal
+          preview={skipPreview}
+          onClose={() => setPanel(null)}
+          onApply={(values) => {
+            update((current) =>
+              skipNextCourseLesson(current, findLesson(current, id), values),
+            );
+            setPanel(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function SkipCourseLessonModal({ preview, onClose, onApply }) {
+  const [reason, setReason] = useState("combined");
+  const [note, setNote] = useState("");
+  const item = value => (
+    <div className="skip-course-item">
+      <strong>{value.code}</strong>
+      {value.title && <span>{value.title}</span>}
+    </div>
+  );
+  return (
+    <Modal title="Skip next course lesson?" onClose={onClose}>
+      <div className="skip-course-preview">
+        <section><h3>Current lesson</h3>{item(preview.currentItem)}</section>
+        <section><h3>Course item to skip</h3>{item(preview.targetItem)}</section>
+        <section>
+          <h3>Next separate lesson after skip</h3>
+          {preview.nextSeparateItem
+            ? item(preview.nextSeparateItem)
+            : <p>Course complete after this adjustment.</p>}
+        </section>
+      </div>
+      <p className="skip-course-explanation">
+        This Course Map item will be marked as covered without a separate lesson.
+        The scheduled lesson is not cancelled.
+      </p>
+      <label className="skip-course-field">
+        <span>Reason</span>
+        <select value={reason} onChange={event => setReason(event.target.value)}>
+          {COURSE_ADJUSTMENT_REASONS.map(option => (
+            <option value={option.value} key={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+      <label className="skip-course-field">
+        <span>Note (optional)</span>
+        <textarea value={note} onChange={event => setNote(event.target.value)} />
+      </label>
+      <div className="modal-footer">
+        <button onClick={onClose}>Cancel</button>
+        <button className="primary-modal-action" onClick={() => onApply({ reason, note })}>
+          Skip course lesson
+        </button>
+      </div>
+    </Modal>
   );
 }
 

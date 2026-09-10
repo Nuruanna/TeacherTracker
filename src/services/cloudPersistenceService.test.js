@@ -48,6 +48,19 @@ describe('cloud-primary persistence', () => {
     expect(migrated.schemaVersion).toBe(seedState.schemaVersion);
   });
 
+  it('normalizes missing course adjustments and preserves them in serialized cloud state', () => {
+    const remote = copy(seedState);
+    delete remote.teachingGroupCourseStates['grade8-a'].courseAdjustments;
+    expect(migrateCloudRow({ schema_version: 11, state: JSON.stringify(remote) }).teachingGroupCourseStates['grade8-a'].courseAdjustments).toEqual([]);
+    remote.teachingGroupCourseStates['grade8-a'].courseAdjustments = [{
+      id: 'course-adjustment-g8-002', type: 'coveredWithoutSeparateLesson', courseMapItemId: 'g8-002', reason: 'combined',
+      withLessonId: 'planned-2026-09-10-grade8-a-thursday-7', withLessonDate: '2026-09-10', withCourseMapItemId: 'g8-001',
+      previousCurrentPosition: 0, resultingCurrentPosition: 2, note: '', createdAt: '2026-09-10T04:30:00.000Z',
+    }];
+    const migrated = migrateCloudRow({ schema_version: 11, state: JSON.stringify(remote) });
+    expect(migrated.teachingGroupCourseStates['grade8-a'].courseAdjustments).toEqual(remote.teachingGroupCourseStates['grade8-a'].courseAdjustments);
+  });
+
   it('can read the database schema_version when the JSON has no version field', () => {
     const remote = copy(seedState);
     delete remote.schemaVersion;

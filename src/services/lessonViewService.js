@@ -16,10 +16,15 @@ import { isAcademicDateExcluded } from "./academicCalendarService";
 import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
 import { getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
+import {
+  courseAdjustmentForLesson,
+  coursePlanningContext,
+} from "./courseAdjustmentService";
 
 const hasItems = (value) => Array.isArray(value) && value.length > 0;
-const historicalInferenceIsSafe = (courseState) =>
+const historicalInferenceIsSafe = (courseState, adjustmentsAreDeterministic) =>
   Boolean(courseState) &&
+  adjustmentsAreDeterministic &&
   Object.keys(courseState.lessonAssignments || {}).length === 0 &&
   !hasItems(courseState.customLessons) &&
   !hasItems(courseState.cancelledEventIds) &&
@@ -56,9 +61,11 @@ const historicalPlannedItemFor = (
   lessons,
   position,
   todayKey,
+  adjustmentsAreDeterministic,
 ) => {
   const courseState = state.teachingGroupCourseStates?.[classItem.id];
-  if (!historicalInferenceIsSafe(courseState)) return null;
+  if (!historicalInferenceIsSafe(courseState, adjustmentsAreDeterministic))
+    return null;
   let pastOccurrenceCount = 0;
   for (
     let cursor = dateKey;
@@ -80,11 +87,10 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
     state.courseMaps?.[classItem.courseMapId] ||
     getCourseMap(classItem.courseMapId);
   if (!map) return null;
-  const lessons = map.items.filter((x) => x.type === "lesson");
-  const position = Math.max(
-    0,
-    state.teachingGroupCourseStates?.[classItem.id]?.currentPosition || 0,
-  );
+  const planning = coursePlanningContext(state, classItem);
+  if (!planning.deterministic) return null;
+  const lessons = planning.items;
+  const position = planning.position;
   const dateKey = isoDate(date);
   const todayKey = getAppTodayISO(asOf);
   if (dateKey < todayKey)
@@ -96,6 +102,7 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
       lessons,
       position,
       todayKey,
+      planning.deterministic,
     );
   const today = getAppDate(asOf);
   const calendarStart = state.academicCalendar?.academicYear?.start
@@ -121,6 +128,13 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
       for (const entry of entries) {
         if (
           !resolveTimetableLesson(state, dateKey, entry.day, entry.lessonNumber)
+        )
+          continue;
+        if (
+          planning.adjustments.some(
+            (adjustment) =>
+              adjustment.withLessonId === `planned-${dateKey}-${entry.id}`,
+          )
         )
           continue;
         if (dateKey === isoDate(date) && entry.lessonNumber >= lessonNumber)
@@ -170,13 +184,23 @@ export function lessonsForDate(state, date, asOf = getAppNow()) {
       const map =
         state.courseMaps?.[classItem.courseMapId] ||
         getCourseMap(classItem.courseMapId);
+      const adjustment = courseAdjustmentForLesson(
+        state,
+        classItem,
+        eventId,
+      );
       const item = assignment
         ? assignment.contentSnapshot ||
           map?.items?.find(
             (candidate) => candidate.id === assignment.courseMapItemId,
           ) ||
           null
-        : plannedItemFor(state, classItem, date, entry.lessonNumber, asOf);
+        : adjustment
+          ? map?.items?.find(
+              (candidate) =>
+                candidate.id === adjustment.withCourseMapItemId,
+            ) || null
+          : plannedItemFor(state, classItem, date, entry.lessonNumber, asOf);
       const code = item?.code || `${classItem.textbook} · Lesson`;
       return {
         id: eventId,

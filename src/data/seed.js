@@ -32,7 +32,7 @@ const timetableByGroup={
 };
 export const defaultWeeklyTimetable=Object.entries(timetableByGroup).flatMap(([teachingGroupId,slots])=>slots.map(([day,lessonNumber])=>({id:`${teachingGroupId}-${day.toLowerCase()}-${lessonNumber}`,day,lessonNumber,teachingGroupId})));
 
-const courseState=group=>({teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]});
+const courseState=group=>({teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[],courseAdjustments:[]});
 export const seedState={
  schemaVersion:11,
  teachingGroups,

@@ -2,13 +2,14 @@ import { resolveBellSlot } from './bellSchedule';
 import { isTeachingGroupActive } from './teachingGroupService';
 import { isAcademicDateExcluded } from './academicCalendarService';
 import { weeklyTimetableForDate } from './timetableService';
+import { coursePlanningContext } from './courseAdjustmentService';
 
 const parseDate=value=>{const [year,month,day]=value.split('-').map(Number);return new Date(year,month-1,day,12);};
 const iso=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 const dayName=date=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][date.getDay()];
 const clone=value=>JSON.parse(JSON.stringify(value));
 
-export function createTeachingGroupCourseState(group){return {teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]};}
+export function createTeachingGroupCourseState(group){return {teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[],courseAdjustments:[]};}
 
 export function countAvailableScheduledSlots(state,teachingGroupId){
  const group=state.teachingGroups.find(item=>item.id===teachingGroupId); if(!group) throw new Error(`Unknown teaching group: ${teachingGroupId}`);
@@ -28,7 +29,8 @@ export function calculateTeachingGroupCapacity(state,teachingGroupId){
  if(!group.courseMapId) return {applies:false,teachingGroupId,courseMapId:null};
  const map=state.courseMaps[group.courseMapId]; if(!map) throw new Error(`Unknown Course Map: ${group.courseMapId}`);
  const courseState=state.teachingGroupCourseStates[teachingGroupId]||createTeachingGroupCourseState(group);
- const requiredPlannedLessons=map.items.filter(item=>item.type==='lesson').length;
+ const planning=coursePlanningContext(state,group);
+ const requiredPlannedLessons=planning.deterministic?planning.items.length:map.items.filter(item=>item.type==='lesson').length;
  const templateReserve=map.items.filter(item=>item.type==='reserve').length;
  const availableScheduledSlots=countAvailableScheduledSlots(state,teachingGroupId);
  const cancellations=new Set(courseState.cancelledEventIds||[]).size;

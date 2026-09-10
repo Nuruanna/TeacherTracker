@@ -3,6 +3,20 @@ import { DEFAULT_GRADE_COLORS } from '../data/pastelPalette';
 import { removePhantomLessonsOutsideAcademicYear } from '../services/historicalSafetyService';
 const STORAGE_KEY = 'teacher-lesson-tracker';
 const clone = value => JSON.parse(JSON.stringify(value));
+const normalizeCourseAdjustments = state => ({
+  ...state,
+  teachingGroupCourseStates: Object.fromEntries(
+    Object.entries(state.teachingGroupCourseStates || {}).map(([groupId, courseState]) => [
+      groupId,
+      {
+        ...courseState,
+        courseAdjustments: Array.isArray(courseState.courseAdjustments)
+          ? clone(courseState.courseAdjustments)
+          : [],
+      },
+    ]),
+  ),
+});
 
 const validAcademicYear = value => value
   && typeof value === 'object'
@@ -76,7 +90,7 @@ export function migrateState(saved) {
       teachingGroups,
       bellSchedules:Array.isArray(saved.bellSchedules)&&saved.bellSchedules.length?clone(saved.bellSchedules):clone(seedState.bellSchedules),
       courseMaps:{...clone(seedState.courseMaps),...(saved.courseMaps?clone(saved.courseMaps):{})},
-      teachingGroupCourseStates:Object.fromEntries(teachingGroups.map(group=>[group.id,{teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]}])) ,
+      teachingGroupCourseStates:Object.fromEntries(teachingGroups.map(group=>[group.id,{teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[],courseAdjustments:[]}])) ,
     };
     if(saved.settings)reset.settings=clone(saved.settings);
     if(saved.appSettings)reset.appSettings=clone(saved.appSettings);
@@ -93,7 +107,7 @@ export function migrateState(saved) {
       weeklyTimetable: clone(seedState.weeklyTimetable),
       teachingGroups,
       academicCalendar:saved.academicCalendar||clone(seedState.academicCalendar),
-      teachingGroupCourseStates:saved.teachingGroupCourseStates||Object.fromEntries(teachingGroups.filter(group=>group.courseMapId).map(group=>[group.id,{teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[]}])) ,
+      teachingGroupCourseStates:saved.teachingGroupCourseStates||Object.fromEntries(teachingGroups.filter(group=>group.courseMapId).map(group=>[group.id,{teachingGroupId:group.id,courseMapId:group.courseMapId,currentPosition:0,lessonAssignments:{},customLessons:[],cancelledEventIds:[],rescheduledEvents:[],courseAdjustments:[]}])) ,
       courseMaps: {...clone(seedState.courseMaps),...(saved.courseMaps?clone(saved.courseMaps):{})},
       weeklyTimetable: (saved.weeklyTimetable||seedState.weeklyTimetable).map(entry=>({...entry,teachingGroupId:entry.teachingGroupId||entry.classId,classId:undefined})),
       lessons: (saved.lessons || []).map(event => {const teachingGroupId=event.teachingGroupId||event.classId;const group=teachingGroups.find(item=>item.id===teachingGroupId);const assignedItem=(saved.courseMaps?.[group?.courseMapId]||seedState.courseMaps[group?.courseMapId])?.items?.find(item=>item.id===event.courseMapItemId);const snapshot=event.contentSnapshot||{code:event.code||'Lesson',title:event.title||null,type:'lesson'};return {
@@ -105,10 +119,10 @@ export function migrateState(saved) {
     };
     delete migrated.classes;
     delete migrated.courseProgress;
-    return preserveAcademicCalendar(migrated, saved);
+    return normalizeCourseAdjustments(preserveAcademicCalendar(migrated, saved));
   }
   else migrated = clone(seedState);
-  return preserveAcademicCalendar(migrated, saved);
+  return normalizeCourseAdjustments(preserveAcademicCalendar(migrated, saved));
 }
 export function loadState() {
   const cached = loadCachedState();

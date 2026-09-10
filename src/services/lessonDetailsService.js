@@ -11,6 +11,7 @@ import {
 import { lessonsForDate } from "./lessonViewService";
 import { addDays, isoDate, parseIsoDate, weekday } from "../utils/date";
 import { lessonStatus } from "../utils/lessons";
+import { coursePlanningContext } from "./courseAdjustmentService";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const snapshotOf = (lesson) =>
@@ -140,6 +141,8 @@ function recalculateFutureAssignments(state, source, assignedTodayId = null) {
   const map = state.courseMaps[group?.courseMapId];
   if (!map) return state;
   const current = groupCourseState(state, group.id);
+  const planning = coursePlanningContext(state, group);
+  if (!planning.deterministic) return state;
   const storedLessons = effectiveStoredLessons(state);
   const taught = new Set(
     storedLessons
@@ -155,9 +158,7 @@ function recalculateFutureAssignments(state, source, assignedTodayId = null) {
       .map((item) => item.courseMapItemId),
   );
   if (assignedTodayId) taught.add(assignedTodayId);
-  const queue = map.items.filter(
-    (item) => item.type === "lesson" && !taught.has(item.id),
-  );
+  const queue = planning.items.filter((item) => !taught.has(item.id));
   const calendar = state.academicCalendar?.academicYear;
   if (!calendar) return state;
   const assignments = { ...current.lessonAssignments };
@@ -218,6 +219,8 @@ export function availablePlannedLessons(state, lesson) {
   );
   const map = state.courseMaps[group?.courseMapId];
   if (!map) return [];
+  const planning = coursePlanningContext(state, group);
+  if (!planning.deterministic) return [];
   const used = new Set(
     effectiveStoredLessons(state)
       .filter(
@@ -227,11 +230,8 @@ export function availablePlannedLessons(state, lesson) {
       )
       .map((item) => item.courseMapItemId),
   );
-  return map.items.filter(
-    (item) =>
-      item.type === "lesson" &&
-      !used.has(item.id) &&
-      item.id !== lesson.courseMapItemId,
+  return planning.items.filter(
+    (item) => !used.has(item.id) && item.id !== lesson.courseMapItemId,
   );
 }
 export function changePlannedLesson(state, lessonId, item) {
