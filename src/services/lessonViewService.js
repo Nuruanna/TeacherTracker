@@ -1,6 +1,13 @@
 import { getCourseMap } from "../data/courseMaps";
 import { activeBellSchedule, resolveTimetableLesson } from "./bellSchedule";
-import { addDays, isoDate, startOfWeek, weekday } from "../utils/date";
+import {
+  addDays,
+  addIsoDateDays,
+  isoDate,
+  isoDateWeekday,
+  startOfWeek,
+  weekday,
+} from "../utils/date";
 import {
   isTeachingGroupActive,
   teachingGroupFor,
@@ -8,7 +15,7 @@ import {
 import { isAcademicDateExcluded } from "./academicCalendarService";
 import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
-import { getAppDate, getAppNow } from "../utils/appTime";
+import { getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
 
 const hasItems = (value) => Array.isArray(value) && value.length > 0;
 const historicalInferenceIsSafe = (courseState) =>
@@ -20,8 +27,7 @@ const historicalInferenceIsSafe = (courseState) =>
   !hasItems(courseState.returnedPlannedLessons) &&
   !courseState.recalculationRequired;
 
-const canonicalEntriesForGroup = (state, classItem, date) => {
-  const dateKey = isoDate(date);
+const canonicalEntriesForGroup = (state, classItem, dateKey) => {
   const academicYear = state.academicCalendar?.academicYear;
   if (
     (academicYear &&
@@ -30,7 +36,7 @@ const canonicalEntriesForGroup = (state, classItem, date) => {
     !isTeachingGroupActive(classItem, dateKey)
   )
     return [];
-  const day = weekday(date);
+  const day = isoDateWeekday(dateKey);
   return weeklyTimetableForDate(state, dateKey)
     .filter(
       (entry) =>
@@ -45,18 +51,22 @@ const canonicalEntriesForGroup = (state, classItem, date) => {
 const historicalPlannedItemFor = (
   state,
   classItem,
-  date,
+  dateKey,
   lessonNumber,
   lessons,
   position,
-  today,
+  todayKey,
 ) => {
   const courseState = state.teachingGroupCourseStates?.[classItem.id];
   if (!historicalInferenceIsSafe(courseState)) return null;
   let pastOccurrenceCount = 0;
-  for (let cursor = new Date(date); cursor < today; cursor = addDays(cursor, 1)) {
+  for (
+    let cursor = dateKey;
+    cursor < todayKey;
+    cursor = addIsoDateDays(cursor, 1)
+  ) {
     for (const entry of canonicalEntriesForGroup(state, classItem, cursor)) {
-      if (isoDate(cursor) === isoDate(date) && entry.lessonNumber < lessonNumber)
+      if (cursor === dateKey && entry.lessonNumber < lessonNumber)
         continue;
       pastOccurrenceCount += 1;
     }
@@ -75,17 +85,19 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
     0,
     state.teachingGroupCourseStates?.[classItem.id]?.currentPosition || 0,
   );
-  const today = getAppDate(asOf);
-  if (date < today)
+  const dateKey = isoDate(date);
+  const todayKey = getAppTodayISO(asOf);
+  if (dateKey < todayKey)
     return historicalPlannedItemFor(
       state,
       classItem,
-      date,
+      dateKey,
       lessonNumber,
       lessons,
       position,
-      today,
+      todayKey,
     );
+  const today = getAppDate(asOf);
   const calendarStart = state.academicCalendar?.academicYear?.start
     ? new Date(`${state.academicCalendar.academicYear.start}T12:00:00`)
     : today;

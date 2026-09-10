@@ -5,5 +5,8 @@ export const dayMonth = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',m
 export const weekday = date => new Intl.DateTimeFormat('en-GB',{weekday:'long'}).format(date);
 export const parseIsoDate = value => { const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||''); return match?new Date(Number(match[1]),Number(match[2])-1,Number(match[3]),12):null; };
 export const addDays = (date,amount) => { const next=new Date(date); next.setDate(next.getDate()+amount); return next; };
+const parseIsoDateParts = value => { const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value||''); return match?match.slice(1).map(Number):null; };
+export const addIsoDateDays = (value,amount) => { const parts=parseIsoDateParts(value);if(!parts)return null;const [year,month,day]=parts;const next=new Date(Date.UTC(year,month-1,day+amount));return `${next.getUTCFullYear()}-${pad(next.getUTCMonth()+1)}-${pad(next.getUTCDate())}`; };
+export const isoDateWeekday = value => { const parts=parseIsoDateParts(value);if(!parts)return null;const [year,month,day]=parts;return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(Date.UTC(year,month-1,day)).getUTCDay()]; };
 export const startOfWeek = date => addDays(date,-((date.getDay()+6)%7));
 export const dayMonthYear = date => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric'}).format(date);
