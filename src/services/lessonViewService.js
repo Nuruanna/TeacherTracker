@@ -8,7 +8,62 @@ import {
 import { isAcademicDateExcluded } from "./academicCalendarService";
 import { effectiveStoredLessons, weeklyTimetableForDate } from "./timetableService";
 import { isPhantomLessonOutsideAcademicYear } from "./historicalSafetyService";
-import { getAppDate, getAppNow, getAppTodayISO } from "../utils/appTime";
+import { getAppDate, getAppNow } from "../utils/appTime";
+
+const hasItems = (value) => Array.isArray(value) && value.length > 0;
+const historicalInferenceIsSafe = (courseState) =>
+  Boolean(courseState) &&
+  Object.keys(courseState.lessonAssignments || {}).length === 0 &&
+  !hasItems(courseState.customLessons) &&
+  !hasItems(courseState.cancelledEventIds) &&
+  !hasItems(courseState.rescheduledEvents) &&
+  !hasItems(courseState.returnedPlannedLessons) &&
+  !courseState.recalculationRequired;
+
+const canonicalEntriesForGroup = (state, classItem, date) => {
+  const dateKey = isoDate(date);
+  const academicYear = state.academicCalendar?.academicYear;
+  if (
+    (academicYear &&
+      (dateKey < academicYear.start || dateKey > academicYear.end)) ||
+    isAcademicDateExcluded(state.academicCalendar, dateKey) ||
+    !isTeachingGroupActive(classItem, dateKey)
+  )
+    return [];
+  const day = weekday(date);
+  return weeklyTimetableForDate(state, dateKey)
+    .filter(
+      (entry) =>
+        entry.teachingGroupId === classItem.id && entry.day === day,
+    )
+    .sort((a, b) => a.lessonNumber - b.lessonNumber)
+    .filter((entry) =>
+      resolveTimetableLesson(state, dateKey, day, entry.lessonNumber),
+    );
+};
+
+const historicalPlannedItemFor = (
+  state,
+  classItem,
+  date,
+  lessonNumber,
+  lessons,
+  position,
+  today,
+) => {
+  const courseState = state.teachingGroupCourseStates?.[classItem.id];
+  if (!historicalInferenceIsSafe(courseState)) return null;
+  let pastOccurrenceCount = 0;
+  for (let cursor = new Date(date); cursor < today; cursor = addDays(cursor, 1)) {
+    for (const entry of canonicalEntriesForGroup(state, classItem, cursor)) {
+      if (isoDate(cursor) === isoDate(date) && entry.lessonNumber < lessonNumber)
+        continue;
+      pastOccurrenceCount += 1;
+    }
+  }
+  const historicalIndex = position - pastOccurrenceCount;
+  return historicalIndex >= 0 ? lessons[historicalIndex] || null : null;
+};
 
 const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()) => {
   const map =
@@ -21,6 +76,16 @@ const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()
     state.teachingGroupCourseStates?.[classItem.id]?.currentPosition || 0,
   );
   const today = getAppDate(asOf);
+  if (date < today)
+    return historicalPlannedItemFor(
+      state,
+      classItem,
+      date,
+      lessonNumber,
+      lessons,
+      position,
+      today,
+    );
   const calendarStart = state.academicCalendar?.academicYear?.start
     ? new Date(`${state.academicCalendar.academicYear.start}T12:00:00`)
     : today;
@@ -72,7 +137,6 @@ export function lessonsForDate(state, date, asOf = getAppNow()) {
       isAcademicDateExcluded(state.academicCalendar, dateKey))
   )
     return storedOnly();
-  if (dateKey < getAppTodayISO(asOf)) return storedOnly();
   const day = weekday(date);
   const generated = weeklyTimetableForDate(state, dateKey)
     .filter((x) => x.day === day)
@@ -91,9 +155,16 @@ export function lessonsForDate(state, date, asOf = getAppNow()) {
       const assignment =
         state.teachingGroupCourseStates?.[entry.teachingGroupId]
           ?.lessonAssignments?.[eventId];
-      const item =
-        assignment?.contentSnapshot ||
-        plannedItemFor(state, classItem, date, entry.lessonNumber, asOf);
+      const map =
+        state.courseMaps?.[classItem.courseMapId] ||
+        getCourseMap(classItem.courseMapId);
+      const item = assignment
+        ? assignment.contentSnapshot ||
+          map?.items?.find(
+            (candidate) => candidate.id === assignment.courseMapItemId,
+          ) ||
+          null
+        : plannedItemFor(state, classItem, date, entry.lessonNumber, asOf);
       const code = item?.code || `${classItem.textbook} · Lesson`;
       return {
         id: eventId,
