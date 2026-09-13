@@ -1,6 +1,6 @@
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { addDays, isoDate, parseIsoDate, weekday } from '../utils/date';
-import { lessonsForDate } from './lessonViewService';
+import { historicalCourseItemOccurrence, lessonsForDate } from './lessonViewService';
 import { effectiveStoredLessons, weeklyTimetableForDate } from './timetableService';
 import { optimizeHomeworkImage } from './homeworkImageService';
 import { getAppDate } from '../utils/appTime';
@@ -174,8 +174,31 @@ const mapSection = item => item?.sectionType === 'reading' ? { key: 'reading:0',
       : Number(item?.unit) > 0 ? { key: `unit:${Number(item.unit)}`, label: `Unit ${Number(item.unit)}` }
         : { key: 'other', label: 'Other lessons' };
 
+const homeworkTemplateIdentity = record => {
+  const courseId = record?.course_id || record?.course?.id || record?.course?.source_course_map_id;
+  return courseId && record?.source_course_item_id ? `${courseId}:${record.source_course_item_id}` : null;
+};
+
+export function assertUniqueHomeworkTemplateIdentities(records = []) {
+  const seen = new Map();
+  for (const record of records) {
+    const identity = homeworkTemplateIdentity(record);
+    if (!identity) continue;
+    if (seen.has(identity)) {
+      throw new HomeworkPublicationError(`Multiple Homework Templates exist for ${identity}. Publication was stopped for data repair.`);
+    }
+    seen.set(identity, record);
+  }
+  return seen;
+}
+
 export function buildHomeworkCourseAdmin(state, publicationData = { records: [], sites: [] }) {
   const sources = listHomeworkSources(state);
+  assertUniqueHomeworkTemplateIdentities(publicationData.records || []);
+  const recordByCourseMapItem = new Map((publicationData.records || []).map(record => [
+    `${record.course?.source_course_map_id}:${record.source_course_item_id}`,
+    record,
+  ]));
   return Object.values(state.courseMaps || {}).sort((a, b) => a.grade - b.grade).map(courseMap => {
     const groups = (state.teachingGroups || []).filter(group => group.type === 'class' && group.courseMapId === courseMap.courseMapId);
     const sections = [];
@@ -184,7 +207,7 @@ export function buildHomeworkCourseAdmin(state, publicationData = { records: [],
       let target = sections.find(value => value.key === section.key);
       if (!target) { target = { ...section, rows: [] }; sections.push(target); }
       const itemSources = sources.filter(source => source.courseMapId === courseMap.courseMapId && source.courseMapItemId === item.id);
-      const record = (publicationData.records || []).find(value => value.course?.source_course_map_id === courseMap.courseMapId && value.source_course_item_id === item.id) || null;
+      const record = recordByCourseMapItem.get(`${courseMap.courseMapId}:${item.id}`) || null;
       target.rows.push({ item, sources: itemSources, preparedSource: itemSources[0] || null, record });
     }
     return { courseMapId: courseMap.courseMapId, grade: courseMap.grade, displayName: courseMap.textbook, groups, sections };
@@ -210,6 +233,40 @@ export const homeworkTemplateTitle = source => [text(source.code), text(source.t
 export function selectReusableHomeworkTemplate(rows) {
   if (rows.length > 1) throw new HomeworkPublicationError('Multiple Homework Templates exist for this source lesson. Publication was stopped for review.');
   return rows[0] || null;
+}
+
+export function mergeHomeworkAssignment(publicationData, assignment) {
+  if (!assignment?.id || !assignment.homework_template_id || !assignment.class_site_id) {
+    throw new HomeworkPublicationError('The Homework assignment response has incomplete identity. Reload and try again.');
+  }
+  const template = publicationData.records?.find(record => record.id === assignment.homework_template_id);
+  const site = publicationData.sites?.find(value => value.id === assignment.class_site_id) || null;
+  if (!template || !site) throw new HomeworkPublicationError('The Homework assignment no longer matches the loaded Template and Class Site. Reload and try again.');
+  const existing = template.assignments?.find(value => value.id === assignment.id);
+  if (existing && (existing.homework_template_id !== assignment.homework_template_id || existing.class_site_id !== assignment.class_site_id)) {
+    throw new HomeworkPublicationError('The Homework assignment identity changed unexpectedly. Reload and try again.');
+  }
+  const hydrated = { ...existing, ...assignment, site };
+  const assignments = existing
+    ? template.assignments.map(value => value.id === assignment.id ? hydrated : value)
+    : [...(template.assignments || []), hydrated];
+  return {
+    ...publicationData,
+    records: publicationData.records.map(record => record.id === template.id ? { ...record, assignments } : record),
+  };
+}
+
+export function createLatestHomeworkLoader(load, apply) {
+  let generation = 0;
+  return {
+    async run() {
+      const requested = ++generation;
+      const result = await load();
+      if (requested === generation) apply(result);
+      return result;
+    },
+    invalidate() { generation += 1; },
+  };
 }
 
 export function validateHomeworkPublication(source, due) {
@@ -300,7 +357,14 @@ async function findOrCreateTemplate(userId, state, source, courseId, sections) {
     content_status: 'ready',
   };
   if (reusable) return { template: reusable, values, created: false };
-  const rows = await query('template creation', supabase.from('homework_templates').insert({ ...values, content_status: 'draft' }).select('id,course_id,source_lesson_id'));
+  const creation = source.courseMapItemId
+    ? supabase.from('homework_templates').upsert(
+      { ...values, content_status: 'draft' },
+      { onConflict: 'owner_id,course_id,source_course_item_id' },
+    )
+    : supabase.from('homework_templates').insert({ ...values, content_status: 'draft' });
+  const rows = await query('template creation', creation.select('id,course_id,source_lesson_id'));
+  if (rows.length !== 1) throw new HomeworkPublicationError('The canonical Homework Template could not be resolved. Reload and try again.');
   return { template: rows[0], values, created: true };
 }
 
@@ -386,6 +450,7 @@ export async function loadHomeworkPublications() {
       assetCount: currentHomeworkImageCount({ assets: templateAssets }),
     };
   });
+  assertUniqueHomeworkTemplateIdentities(records);
   return { records, sites };
 }
 
@@ -432,7 +497,11 @@ export async function saveCentralHomeworkTemplate(courseMapId, item, body, exist
   const sections = sectionIdentity ? await query('central template section lookup', supabase.from('course_sections').select('id').eq('owner_id', user.id).eq('course_id', courses[0].id).eq('section_type', sectionIdentity[0]).eq('section_number', sectionIdentity[1]).limit(1)) : [];
   const values = { owner_id: user.id, course_id: courses[0].id, course_section_id: sections[0]?.id || null, source_course_item_id: item.id, source_lesson_code: item.code || null, source_lesson_title: item.title || null, title: [item.code, item.title].filter(Boolean).join('. ') || null, body, content_status: contentStatus };
   if (reusable) { await query('central template update', supabase.from('homework_templates').update(values).eq('owner_id', user.id).eq('id', reusable.id)); return reusable.id; }
-  const rows = await query('central template creation', supabase.from('homework_templates').insert({ ...values, source_lesson_id: null, source_course_item_id: item.id }).select('id'));
+  const rows = await query('central template creation', supabase.from('homework_templates').upsert(
+    { ...values, source_lesson_id: null },
+    { onConflict: 'owner_id,course_id,source_course_item_id' },
+  ).select('id'));
+  if (rows.length !== 1) throw new HomeworkPublicationError('The canonical Homework Template could not be resolved. Reload and try again.');
   return rows[0].id;
 }
 
@@ -533,9 +602,15 @@ export function resolveTargetCourseLesson(state, groupId, courseMapItemId) {
   }
   const planning = coursePlanningContext(state, group);
   if (planning.deterministic) {
-    if (planning.coveredIds.has(courseMapItemId)) return null;
+    const covered = planning.adjustments.find(item => item.courseMapItemId === courseMapItemId);
+    if (covered) {
+      const actual = effectiveStoredLessons(state).find(lesson => lesson.id === covered.withLessonId && lesson.teachingGroupId === groupId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled') ||
+        lessonsForDate(state, parseIsoDate(covered.withLessonDate)).find(lesson => lesson.id === covered.withLessonId && lesson.teachingGroupId === groupId && lesson.manualStatus !== 'cancelled' && lesson.manualStatus !== 'rescheduled');
+      return actual ? { ...actual, homeworkCourseMapItemId: courseMapItemId } : null;
+    }
     const targetIndex = planning.lessons.findIndex(item => item.id === courseMapItemId);
-    if (targetIndex < 0 || targetIndex < planning.rawPosition) return null;
+    if (targetIndex < 0) return null;
+    if (targetIndex < planning.rawPosition) return historicalCourseItemOccurrence(state, group, courseMapItemId);
   } else return null;
   const end = parseIsoDate(state.academicCalendar?.academicYear?.end);
   if (!end) return null;
@@ -568,21 +643,25 @@ export function resolveTargetCourseLesson(state, groupId, courseMapItemId) {
 }
 
 export async function publishExistingTemplateToClass(state, template, targetLesson, due) {
-  const source = { ...homeworkSourceFromLesson(state, targetLesson), date: due.assignedDate || targetLesson.date };
+  const source = {
+    ...homeworkSourceFromLesson(state, targetLesson),
+    courseMapItemId: targetLesson.homeworkCourseMapItemId || targetLesson.courseMapItemId,
+    date: due.assignedDate || targetLesson.date,
+  };
   validateHomeworkPublication(source, due);
   const user = await currentUser();
   const sites = await query('target class site lookup', supabase.from('class_sites').select('id,course_id,is_active').eq('owner_id', user.id).eq('source_teaching_group_id', source.teachingGroupId).limit(2));
   if (sites.length !== 1 || sites[0].course_id !== template.course_id) throw new HomeworkPublicationError('The target class is not safely linked to this Homework course.');
   await query('template ready state', supabase.from('homework_templates').update({ content_status: 'ready' }).eq('owner_id', user.id).eq('id', template.id));
   const row = buildAssignmentRow({ userId: user.id, state, source, site: sites[0], template, due, publishedAt: new Date().toISOString() });
-  const assignments = await query('parallel assignment publication', supabase.from('homework_assignments').upsert(row, { onConflict: 'homework_template_id,class_site_id,assigned_date' }).select('id,publication_status,assigned_date,due_date'));
+  const assignments = await query('parallel assignment publication', supabase.from('homework_assignments').upsert(row, { onConflict: 'homework_template_id,class_site_id,assigned_date' }).select('id,homework_template_id,class_site_id,assigned_lesson_id,assigned_course_item_id,assigned_date,due_date,due_lesson_date,due_lesson_id,publication_status,published_at'));
   return assignments[0];
 }
 
 export async function archiveHomeworkAssignment(assignmentId) {
   const user = await currentUser();
   const rows = await query('assignment archive', supabase.from('homework_assignments').update({ publication_status: 'archived' })
-    .eq('owner_id', user.id).eq('id', assignmentId).select('id,publication_status'));
+    .eq('owner_id', user.id).eq('id', assignmentId).select('id,homework_template_id,class_site_id,assigned_lesson_id,assigned_course_item_id,assigned_date,due_date,due_lesson_date,due_lesson_id,publication_status,published_at'));
   if (!rows.length) throw new HomeworkPublicationError('The published assignment could not be found.');
   return rows[0];
 }

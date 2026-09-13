@@ -22,6 +22,9 @@ import {
   validateHomeworkPublication,
   validateHomeworkAudio,
   homeworkAudioTitle,
+  assertUniqueHomeworkTemplateIdentities,
+  createLatestHomeworkLoader,
+  mergeHomeworkAssignment,
   MAX_HOMEWORK_AUDIO_BYTES,
 } from './classSitesHomeworkService';
 
@@ -78,12 +81,18 @@ describe('Homework due lesson/date planning', () => {
     expect(resolveTargetCourseLesson(state, 'grade3-b', 'g3-001').date).toBe('2026-09-15');
   });
 
-  it('does not scan the academic year for a missing past Course Map item', () => {
+  it('resolves a normal historical virtual Course Map item without all-class lesson generation', () => {
     const state = copy(seedState);
     state.academicCalendar.academicYear.end = '2027-05-31';
     state.teachingGroupCourseStates['grade3-a'].currentPosition = 10;
     const scan = vi.spyOn(lessonViewService, 'lessonsForDate');
-    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-001')).toBeNull();
+    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-001')).toMatchObject({
+      id: 'planned-2026-08-10-grade3-a-monday-5',
+      date: '2026-08-10',
+      teachingGroupId: 'grade3-a',
+      courseMapItemId: 'g3-001',
+      planned: true,
+    });
     expect(scan).not.toHaveBeenCalled();
     scan.mockRestore();
   });
@@ -101,7 +110,7 @@ describe('Homework due lesson/date planning', () => {
     });
   });
 
-  it('recognizes a covered Course Map item without searching for a separate occurrence', () => {
+  it('resolves a covered Course Map item to its real adjustment occurrence without creating a separate lesson', () => {
     const state = copy(seedState);
     state.teachingGroupCourseStates['grade3-a'].currentPosition = 2;
     state.teachingGroupCourseStates['grade3-a'].courseAdjustments = [{
@@ -111,8 +120,17 @@ describe('Homework due lesson/date planning', () => {
       previousCurrentPosition: 0, resultingCurrentPosition: 2,
       note: '', createdAt: '2026-09-07T03:00:00.000Z',
     }];
+    state.lessons = [{
+      id: 'planned-2026-09-07-grade3-a-monday-5', date: '2026-09-07', number: 5,
+      teachingGroupId: 'grade3-a', courseMapItemId: 'g3-001', manualStatus: null,
+      contentSnapshot: { code: 'Starter Lesson', title: 'Welcome back!', type: 'lesson' },
+    }];
     const scan = vi.spyOn(lessonViewService, 'lessonsForDate');
-    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-002')).toBeNull();
+    expect(resolveTargetCourseLesson(state, 'grade3-a', 'g3-002')).toMatchObject({
+      id: 'planned-2026-09-07-grade3-a-monday-5',
+      courseMapItemId: 'g3-001',
+      homeworkCourseMapItemId: 'g3-002',
+    });
     expect(scan).not.toHaveBeenCalled();
     scan.mockRestore();
   });
@@ -175,6 +193,53 @@ describe('Course Map Homework administration', () => {
     buildHomeworkCourseAdmin(state, { records: [{ source_course_item_id: 'g3-001', body: 'Prepared', course: { source_course_map_id: 'grade-3' }, assignments: [] }], sites: [] });
     expect(state.lessons).toEqual([sourceLesson]);
     expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('rejects duplicate logical Templates instead of selecting whichever row arrived first', () => {
+    const records = [
+      { id: 'old', course_id: 'course-2', source_course_item_id: 'g2-003', course: { source_course_map_id: 'grade-2' } },
+      { id: 'new', course_id: 'course-2', source_course_item_id: 'g2-003', course: { source_course_map_id: 'grade-2' } },
+    ];
+    expect(() => assertUniqueHomeworkTemplateIdentities(records)).toThrow(/Multiple Homework Templates.*course-2:g2-003/);
+    expect(() => buildHomeworkCourseAdmin(copy(seedState), { records, sites: [] })).toThrow(/Publication was stopped/);
+  });
+
+  it('merges two, three and four-class publication changes by exact assignment identity', () => {
+    const sites = ['a', 'b', 'c', 'd'].map(id => ({ id: `site-${id}`, source_teaching_group_id: id, is_active: false }));
+    let data = {
+      sites,
+      records: [{ id: 'template', assignments: sites.map((site, index) => ({
+        id: `assignment-${site.id}`, homework_template_id: 'template', class_site_id: site.id,
+        publication_status: index === 1 ? 'published' : 'archived', site,
+      })) }],
+    };
+    const change = (id, publication_status) => {
+      data = mergeHomeworkAssignment(data, {
+        id: `assignment-site-${id}`, homework_template_id: 'template', class_site_id: `site-${id}`, publication_status,
+      });
+    };
+    change('a', 'published');
+    expect(data.records[0].assignments.map(item => item.publication_status)).toEqual(['published', 'published', 'archived', 'archived']);
+    change('c', 'published');
+    change('b', 'archived');
+    expect(data.records[0].assignments.map(item => item.publication_status)).toEqual(['published', 'archived', 'published', 'archived']);
+    change('d', 'published');
+    change('a', 'archived');
+    expect(data.records[0].assignments.map(item => item.publication_status)).toEqual(['archived', 'archived', 'published', 'published']);
+    expect(sites.every(site => site.is_active === false)).toBe(true);
+  });
+
+  it('keeps the latest overlapping reload result when an older request finishes last', async () => {
+    const resolvers = [];
+    const applied = [];
+    const loader = createLatestHomeworkLoader(() => new Promise(resolve => resolvers.push(resolve)), value => applied.push(value));
+    const first = loader.run();
+    const second = loader.run();
+    resolvers[1]({ version: 2 });
+    await second;
+    resolvers[0]({ version: 1 });
+    await first;
+    expect(applied).toEqual([{ version: 2 }]);
   });
 
   it('derives published, pending and unassigned class-chip states', () => {

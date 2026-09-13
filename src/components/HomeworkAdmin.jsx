@@ -7,6 +7,7 @@ import {
   archiveHomeworkAssignment, buildHomeworkCourseAdmin, defaultHomeworkDue,
   deleteHomeworkTemplate, deleteSharedHomeworkImage, dueLessonOptions, hasMeaningfulHomework,
   homeworkClassStatus, homeworkRowDisplay, loadHomeworkPublications,
+  createLatestHomeworkLoader, mergeHomeworkAssignment,
   publishExistingTemplateToClass, resolveTargetCourseLesson,
   saveCentralHomeworkTemplate, updateHomeworkTemplateBody, uploadSharedHomeworkImage,
 } from '../services/classSitesHomeworkService';
@@ -42,12 +43,20 @@ export default function HomeworkAdmin({ state, update }) {
   const [pendingAudioCount, setPendingAudioCount] = useState(0);
   const [dateChanges, setDateChanges] = useState({});
   const [busy, setBusy] = useState('');
+  const [pendingGroups, setPendingGroups] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const textEditorRef = useRef(null);
   const closeModalRef = useRef(null);
-  const reload = async () => { const result = await loadHomeworkPublications(); setData(result); setError(''); return result; };
-  useEffect(() => { let active = true; loadHomeworkPublications().then(result => active && setData(result)).catch(loadError => active && setError(loadError.message || 'Homework publications could not be loaded.')).finally(() => active && setLoading(false)); return () => { active = false; }; }, []);
+  const pendingGroupIdsRef = useRef(new Set());
+  const loaderRef = useRef(null);
+  if (!loaderRef.current) loaderRef.current = createLatestHomeworkLoader(loadHomeworkPublications, result => { setData(result); setError(''); });
+  const reload = () => loaderRef.current.run();
+  useEffect(() => {
+    let active = true;
+    reload().catch(loadError => active && setError(loadError.message || 'Homework publications could not be loaded.')).finally(() => active && setLoading(false));
+    return () => { active = false; loaderRef.current.invalidate(); };
+  }, []);
   const courses = useMemo(() => buildHomeworkCourseAdmin(state, data), [state, data]);
   const activeGrade = grade || courses[0]?.grade;
   const course = courses.find(item => item.grade === activeGrade);
@@ -130,27 +139,49 @@ export default function HomeworkAdmin({ state, update }) {
     if (saved?.id) setData(current => ({ ...current, records: current.records.map(record => record.id === saved.id ? { ...record, ...saved } : record) }));
   };
 
-  const saveDraft = async () => {
-    const publishedCount = selected.record?.assignments?.filter(item => item.publication_status === 'published').length || 0;
-    if (publishedCount > 1 && !await confirm({ title: 'Update homework?', message: `This homework is currently used by ${publishedCount} classes. Changes will update it for all of them.`, confirmLabel: 'Update for all', cancelLabel: 'Keep unchanged' })) return null;
-    setBusy('save'); setError('');
-    try { const id = await saveCentralHomeworkTemplate(selectedCourse.courseMapId, selected.item, activeBody, selected.record?.id || null, publishedCount ? 'ready' : 'draft'); await reload(); return id; }
-    catch (saveError) { setError(saveError.message || 'Homework could not be saved.'); return null; }
-    finally { setBusy(''); }
-  };
   const publishGroup = async group => {
+    if (pendingGroupIdsRef.current.has(group.id)) return;
+    pendingGroupIdsRef.current.add(group.id);
+    setPendingGroups(current => ({ ...current, [group.id]: true }));
     let template = selected.record;
-    if (!template) { const id = await saveDraft(); if (!id) return; const latest = await reload(); template = latest.records.find(record => record.id === id); }
-    const planning = publicationPlanning.get(group.id);
-    const lesson = planning?.target;
-    if (!lesson) { setError(`Assigned lesson date for ${group.displayName} could not be resolved safely.`); return; }
-    const selectedDue = dateChanges[group.id];
-    const due = selectedDue?.dueDate ? { mode: selectedDue.mode, dueDate: selectedDue.dueDate, dueLessonDate: selectedDue.dueLessonDate || null, dueLessonId: selectedDue.dueLessonId || null } : planning.automaticDue;
-    if (!due.dueDate) { setError(`Due date for ${group.displayName} needs manual selection in Lesson Details.`); return; }
-    setBusy(group.id); setError('');
-    try { await publishExistingTemplateToClass(state, template, lesson, due); await reload(); }
+    let templateData = data;
+    setError('');
+    try {
+      if (!template) {
+        const id = await saveCentralHomeworkTemplate(selectedCourse.courseMapId, selected.item, activeBody, null, 'draft');
+        templateData = await reload();
+        template = templateData.records.find(record => record.id === id);
+        if (!template) throw new Error('The canonical Homework Template could not be loaded.');
+      }
+      const planning = publicationPlanning.get(group.id);
+      const lesson = planning?.target;
+      if (!lesson) throw new Error(`Assigned lesson date for ${group.displayName} could not be resolved safely.`);
+      const selectedDue = dateChanges[group.id];
+      const due = selectedDue?.dueDate ? { mode: selectedDue.mode, dueDate: selectedDue.dueDate, dueLessonDate: selectedDue.dueLessonDate || null, dueLessonId: selectedDue.dueLessonId || null } : planning.automaticDue;
+      if (!due.dueDate) throw new Error(`Due date for ${group.displayName} needs manual selection in Lesson Details.`);
+      const assignment = await publishExistingTemplateToClass(state, template, lesson, due);
+      setData(current => mergeHomeworkAssignment(current.records.some(record => record.id === template.id) ? current : templateData, assignment));
+    }
     catch (publishError) { setError(publishError.message || `Homework could not be assigned to ${group.displayName}.`); }
-    finally { setBusy(''); }
+    finally {
+      pendingGroupIdsRef.current.delete(group.id);
+      setPendingGroups(current => ({ ...current, [group.id]: false }));
+    }
+  };
+  const unpublishGroup = async (group, assignment) => {
+    if (pendingGroupIdsRef.current.has(group.id)) return;
+    pendingGroupIdsRef.current.add(group.id);
+    setPendingGroups(current => ({ ...current, [group.id]: true }));
+    setError('');
+    try {
+      const saved = await archiveHomeworkAssignment(assignment.id);
+      setData(current => mergeHomeworkAssignment(current, saved));
+    } catch (archiveError) {
+      setError(archiveError.message || `Homework could not be unpublished for ${group.displayName}.`);
+    } finally {
+      pendingGroupIdsRef.current.delete(group.id);
+      setPendingGroups(current => ({ ...current, [group.id]: false }));
+    }
   };
   const deleteTemplate = async () => {
     if (!selected.record) return;
@@ -238,7 +269,8 @@ export default function HomeworkAdmin({ state, update }) {
         const selectedDue = dateChanges[group.id] || dueSelectionFromAssignment(assignment, automaticDue);
         const chosenAssigned = target?.date || assignment?.assigned_date;
         const chosenDue = selectedDue?.dueDate;
-        return <article key={group.id}><strong>{group.displayName}</strong>{dateChanges[group.id]?.editing ? <HomeworkDueSelector assignedDate={chosenAssigned} due={selectedDue} options={dueOptions} onChange={nextDue => setDateChanges(current => ({ ...current, [group.id]: { ...nextDue, editing: true } }))} onDone={() => setDateChanges(current => ({ ...current, [group.id]: { ...current[group.id], editing: false } }))} ariaPrefix={group.displayName}/> : <div className="publication-date-row"><div className="publication-dates"><span><small>Assigned</small>{dateLabel(chosenAssigned)}</span><span><small>Due</small>{dateLabel(chosenDue)}</span></div><button className="date-change" onClick={() => setDateChanges(current => ({ ...current, [group.id]: { ...selectedDue, editing: true } }))}>Change due date</button></div>}<div className="publication-action-row">{assignment?.publication_status === 'published' ? <div className="publication-actions"><b>✓ Published</b><button className="unpublish-button" onClick={async () => { await archiveHomeworkAssignment(assignment.id); await reload(); }}>Unpublish</button></div> : <button className="primary-settings" disabled={Boolean(busy) || (!activeBody.trim() && !selected.record?.assets?.length) || !target || !chosenDue} onClick={() => publishGroup(group)}>Publish to students</button>}</div></article>;
+        const pending = Boolean(pendingGroups[group.id]);
+        return <article key={group.id}><strong>{group.displayName}</strong>{dateChanges[group.id]?.editing ? <HomeworkDueSelector assignedDate={chosenAssigned} due={selectedDue} options={dueOptions} onChange={nextDue => setDateChanges(current => ({ ...current, [group.id]: { ...nextDue, editing: true } }))} onDone={() => setDateChanges(current => ({ ...current, [group.id]: { ...current[group.id], editing: false } }))} ariaPrefix={group.displayName}/> : <div className="publication-date-row"><div className="publication-dates"><span><small>Assigned</small>{dateLabel(chosenAssigned)}</span><span><small>Due</small>{dateLabel(chosenDue)}</span></div><button className="date-change" onClick={() => setDateChanges(current => ({ ...current, [group.id]: { ...selectedDue, editing: true } }))}>Change due date</button></div>}<div className="publication-action-row">{assignment?.publication_status === 'published' ? <div className="publication-actions"><b>✓ Published</b><button className="unpublish-button" disabled={pending} onClick={() => unpublishGroup(group, assignment)}>Unpublish</button></div> : <button className="primary-settings" disabled={Boolean(busy) || pending || (!activeBody.trim() && !selected.record?.assets?.length) || !target || !chosenDue} onClick={() => publishGroup(group)}>Publish to students</button>}</div></article>;
       })}</div></section>
     </section></div>, document.body)}
   </section>;

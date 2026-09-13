@@ -82,6 +82,80 @@ const historicalPlannedItemFor = (
   return historicalIndex >= 0 ? lessons[historicalIndex] || null : null;
 };
 
+export function historicalCourseItemOccurrence(
+  state,
+  classItem,
+  courseMapItemId,
+  asOf = getAppNow(),
+) {
+  const courseState = state.teachingGroupCourseStates?.[classItem?.id];
+  const planning = coursePlanningContext(state, classItem);
+  const startKey = state.academicCalendar?.academicYear?.start;
+  const todayKey = getAppTodayISO(asOf);
+  if (
+    !classItem ||
+    !startKey ||
+    startKey >= todayKey ||
+    !historicalInferenceIsSafe(courseState, planning.deterministic)
+  )
+    return null;
+
+  const occurrences = [];
+  for (
+    let dateKey = startKey;
+    dateKey < todayKey;
+    dateKey = addIsoDateDays(dateKey, 1)
+  ) {
+    for (const entry of canonicalEntriesForGroup(state, classItem, dateKey))
+      occurrences.push({ dateKey, entry });
+  }
+
+  for (let index = 0; index < occurrences.length; index += 1) {
+    const { dateKey, entry } = occurrences[index];
+    const eventId = `planned-${dateKey}-${entry.id}`;
+    const adjustment = courseAdjustmentForLesson(state, classItem, eventId);
+    const historicalIndex =
+      planning.position - (occurrences.length - index);
+    const plannedItem = planning.items[historicalIndex] || null;
+    const itemId = adjustment?.withCourseMapItemId || plannedItem?.id || null;
+    if (itemId !== courseMapItemId) continue;
+    const item = planning.lessons.find((candidate) => candidate.id === itemId);
+    const day = isoDateWeekday(dateKey);
+    const resolved = resolveTimetableLesson(
+      state,
+      dateKey,
+      day,
+      entry.lessonNumber,
+    );
+    if (!resolved || !item) continue;
+    const code = item.code || `${classItem.textbook} · Lesson`;
+    return {
+      id: eventId,
+      date: dateKey,
+      number: entry.lessonNumber,
+      start: resolved.start,
+      end: resolved.end,
+      teachingGroupId: classItem.id,
+      courseMapItemId: item.id,
+      code,
+      contentSnapshot: {
+        code,
+        title: item.title || null,
+        type: item.type || "lesson",
+      },
+      manualStatus: null,
+      needsAttention: false,
+      carriedIn: "",
+      homework: "",
+      unfinished: "",
+      carryForward: false,
+      planned: true,
+      bellScheduleId: resolved.bellScheduleId,
+    };
+  }
+  return null;
+}
+
 const plannedItemFor = (state, classItem, date, lessonNumber, asOf = getAppNow()) => {
   const map =
     state.courseMaps?.[classItem.courseMapId] ||
